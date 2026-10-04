@@ -37,7 +37,7 @@ window.PORTFOLIO = {
   ],
 
   about: {
-    photo: 'assets/about/evan.jpg',
+    photo: 'assets/about/evan.jpg?v=2',
     text: [
       'Award-winning cinematographer, professional photographer, electrical engineer. Not in order.',
       'Most of my inspiration comes from animals and wildlife. Wildlife photography has been my passion for the last five years: it is the perfect excuse for travel, technical expertise, and a wonderful (yet unforgiving) creative outlet.',

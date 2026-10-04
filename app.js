@@ -696,7 +696,12 @@
   addEventListener('hashchange', route);
   let rq = 0;
   const resized = () => { cancelAnimationFrame(rq); rq = requestAnimationFrame(sizeShelf); };
+  // the shelf screen fills the window below the header (see .hero min-height)
+  const head = $('.site-head');
+  const setHeadH = () => document.documentElement.style.setProperty('--head-h', Math.ceil(head.getBoundingClientRect().height) + 'px');
+  setHeadH();
   if ('ResizeObserver' in window) new ResizeObserver(resized).observe($('#scene'));
+  if ('ResizeObserver' in window) new ResizeObserver(setHeadH).observe(head);
   addEventListener('resize', resized);
 
   /* ---------- boot ---------- */
