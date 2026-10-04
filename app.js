@@ -40,6 +40,7 @@
   const ALL = [];
   BOOKS.forEach((b, bi) => {
     b.slot = (bi % 6) + 1;
+    b.projects = b.projects.filter(p => !p.hidden);
     b.projects.forEach((p, k) => { p.book = b; p.k = k; p.items = itemsOf(p); p.items.forEach((it, m) => { it.m = m; }); ALL.push(p); });
     const ys = b.projects.flatMap(p => String(p.year).match(/\d{4}/g) || []).map(Number);
     b.years = ys.length ? (Math.min(...ys) === Math.max(...ys) ? String(ys[0]) : `${Math.min(...ys)}-${Math.max(...ys)}`) : '';

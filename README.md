@@ -71,10 +71,14 @@ Then open http://localhost:4317.
 
 ## Deploying
 
-Any static host works. Upload the folder as it is.
+The site is hosted on GitHub Pages from the `main` branch of
+github.com/EvanIsCoolAndEpic/portfolio, at https://esegan.com (the `CNAME` file sets the domain).
 
-- **Netlify:** drag the folder onto app.netlify.com/drop.
-- **Vercel:** `npx vercel` from inside this folder.
-- **GitHub Pages:** push to a repository, then turn on Pages in Settings → Pages.
+To publish changes:
+```bash
+git add -A && git commit -m "Describe the change" && git push
+```
+GitHub rebuilds in about a minute. If you changed `styles.css` or any `.js` file, bump the `?v=` number
+on its tag in `index.html` first, so returning visitors don't get a cached old copy.
 
-Before going live, update the `og:` and `description` meta tags in `index.html`, and the email address in the `<noscript>` line.
+Old esegan.com addresses from the Squarespace site are redirected to the matching book by `404.html`.

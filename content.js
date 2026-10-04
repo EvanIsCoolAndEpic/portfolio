@@ -28,7 +28,7 @@ window.PORTFOLIO = {
   name: 'Evan Egan',
   monogram: 'EE',
   role: 'Cinematographer, photographer, electrical engineer',
-  email: 'email@yourdomain.com',   // TODO: your real address (esegan.com doesn't list one)
+  email: 'evansegan2025@gmail.com',
   location: '',
   availability: '',
   resume: '',                     // e.g. 'assets/evan-egan-resume.pdf', leave empty to hide the button
@@ -37,7 +37,7 @@ window.PORTFOLIO = {
   ],
 
   about: {
-    photo: '',                    // e.g. 'assets/me.jpg', empty shows your monogram
+    photo: 'assets/about/evan.jpg',
     text: [
       'Award-winning cinematographer, professional photographer, electrical engineer. Not in order.',
       'Most of my inspiration comes from animals and wildlife. Wildlife photography has been my passion for the last five years: it is the perfect excuse for travel, technical expertise, and a wonderful (yet unforgiving) creative outlet.',
@@ -127,7 +127,7 @@ window.PORTFOLIO = {
     },
 
     {
-      id: 'eng', title: 'Engineering', format: 'notebook', peek: '3 builds', blurb: 'Machine learning, game physics, hardware',
+      id: 'eng', title: 'Engineering', format: 'notebook', peek: '2 builds', blurb: 'Machine learning, game physics, hardware',
       spine: { w: 66, h: 256 },
       intro: 'Things I built to solve a problem I actually had, from a machine learning tool for my high school to game physics and a camera trap.',
       projects: [
@@ -151,7 +151,7 @@ window.PORTFOLIO = {
           media: [],
           placeholder: { kind: 'code', code: 'public void ApplyCustomPropulsion(Rigidbody rb, Vector3 origin, float baseForce)\n{\n  Vector3 dir = (rb.position - origin).normalized;\n  dir += Vector3.up * 0.1f;  // slight upward bias\n\n  float d = Vector3.Distance(rb.position, origin);\n  float force = baseForce / (1f + d * d);  // inverse square\n\n  rb.AddForce(dir.normalized * force, ForceMode.Impulse);\n}' } },
 
-        { slug: 'dslr-camera-trap', title: 'DIY DSLR Camera Trap', type: 'Hardware, in progress', year: '2025',
+        { slug: 'dslr-camera-trap', title: 'DIY DSLR Camera Trap', type: 'Hardware, in progress', year: '2025', hidden: true,  // set hidden: false to show it again
           text: ['A DIY camera trap built around a DSLR, for photographing wildlife. Still at the planning stage.'],
           note: 'in progress',
           figCaption: 'Planning sketches.',
@@ -345,27 +345,16 @@ window.PORTFOLIO = {
             [54, 'A hug in front of the crowd'],
             [59, 'The seniors and families together'],
           ]) },
-        { slug: 'carmel', title: 'Carmel', part: 'Sports & people', text: ['Candid portraits of friends.'],
+        { slug: 'carmel', title: 'Carmel', part: 'Sports & people', text: ['Portraits of friends in Carmel.'],
           media: PH('carmel', [
             [26, 'Friends arm in arm outside in the sun'],
-            [2, 'A portrait in low warm light'],
-            [3, 'A close portrait in a dim room'],
-            [5, 'A close portrait with bangs, in warm light'],
+            [25, 'A student in a blazer outside in the sun'],
             [15, 'A close portrait against a red wall'],
-            [6, 'Three friends framed by a round mirror'],
-            [8, 'Two friends laughing'],
             [13, 'A smile under classroom lights'],
-            [14, 'A conversation in the classroom'],
             [10, 'Two friends in blazers posing in a classroom'],
+            [23, 'A student in a blazer at a desk'],
             [24, 'Two friends at a desk'],
             [21, 'Packing up at the desk'],
-            [16, 'Lunch in the cafeteria'],
-            [17, 'Friends talking in the gym'],
-            [18, 'A table of friends at lunch'],
-            [19, 'The cafeteria from the end of a table'],
-            [20, 'Showing a phone across the desk'],
-            [23, 'A student in a blazer at a desk'],
-            [25, 'A student in a blazer outside in the sun'],
             [28, 'Friends laughing outside'],
             [29, 'A table of students in the classroom'],
           ]) },
