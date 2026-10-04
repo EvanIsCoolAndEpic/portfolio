@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Evan Egan | Films, photographs, design &amp; software</title>
+<meta name="description" content="Portfolio of Evan Egan: films, photographs, design and software, arranged as books on a shelf.">
+<meta property="og:title" content="Evan Egan">
+<meta property="og:description" content="Films, photographs, design and software, arranged as books on a shelf.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#ece4d0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23b8301e'/%3E%3Ctext x='32' y='42' font-family='Georgia,serif' font-size='28' text-anchor='middle' fill='%23f4eedf'%3EEE%3C/text%3E%3C/svg%3E">
+<link rel="preload" href="assets/fonts/JosefinSans-normal-400_700.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<!--BODY-->
+
+<div id="site">
+  <header class="site-head" id="top">
+    <a class="brand" href="#top"><h1 class="name" id="siteName">Evan Egan</h1><span class="role" id="siteRole"></span></a>
+    <nav class="nav" aria-label="Sections"><a href="#work">Work</a><a href="#about">About</a></nav>
+  </header>
+
+  <main>
+    <section class="hero" aria-label="Bookshelf">
+      <div class="decor" id="decor" aria-hidden="true"></div>
+      <div class="scene" id="scene"><div class="row" id="row"></div><div class="plank"></div></div>
+      <p class="hint">Pick a book</p>
+    </section>
+
+    <hr class="rule">
+
+    <section class="section" id="work" aria-labelledby="workTitle">
+      <div class="sec-head">
+        <h2 class="sec-title" id="workTitle">All work</h2>
+        <div class="filters" id="filters" role="group" aria-label="Filter by discipline"></div>
+      </div>
+      <ul class="cards" id="cards"></ul>
+    </section>
+
+    <hr class="rule">
+
+    <section class="section" id="about" aria-labelledby="aboutTitle">
+      <div class="about-grid">
+        <div class="portrait" id="portrait"></div>
+        <div class="about-text">
+          <h2 class="sec-title" id="aboutTitle">About</h2>
+          <div id="aboutText"></div>
+          <dl class="disc" id="disc"></dl>
+          <div class="contact" data-copy-scope>
+            <p class="avail" id="avail"></p>
+            <div class="email-row"><span class="email" id="email" data-copy-src></span><button class="btn" id="copyEmail" data-copy="">Copy email</button></div>
+            <div class="email-row" id="resumeRow"></div>
+            <ul class="links" id="links"></ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-foot"><span id="copyright"></span><span id="loc"></span></footer>
+</div>
+
+<div class="reader" id="reader" hidden role="dialog" aria-modal="true" aria-labelledby="rTitle">
+  <div class="r-top">
+    <button class="btn" id="closeBtn">← Shelf</button>
+    <h2 class="r-title" id="rTitle"></h2>
+    <div class="r-actions"><button class="btn hide-sm" id="tocBtn">Contents</button><button class="btn hide-sm" id="shareBtn">Copy link</button></div>
+  </div>
+  <div class="stage">
+    <div class="spread" id="spread"><div class="page" id="pageL"></div><div class="page" id="pageR"></div></div>
+  </div>
+  <div class="r-bot">
+    <button class="btn" id="prevBtn" aria-label="Previous page">←</button>
+    <div class="scrub"><div class="scrub-bar" id="scrubBar" role="group" aria-label="Sections"></div><p class="scrub-label" id="scrubLabel"></p></div>
+    <button class="btn" id="nextBtn" aria-label="Next page">→</button>
+  </div>
+  <p class="sr-only" aria-live="polite" id="live"></p>
+</div>
+
+<div class="lightbox" id="lb" hidden role="dialog" aria-modal="true" aria-label="Media viewer">
+  <div class="lb-top"><span class="lb-count" id="lbCount"></span><button class="btn" id="lbClose">Close</button></div>
+  <div class="lb-stage"><div class="lb-media" id="lbMedia"></div></div>
+  <div class="lb-bot"><button class="btn" id="lbPrev" aria-label="Previous">←</button><p class="lb-cap" id="lbCap"></p><button class="btn" id="lbNext" aria-label="Next">→</button></div>
+</div>
+
+<noscript><p style="padding:24px;font:16px/1.5 system-ui,sans-serif">This portfolio needs JavaScript to open its books. Write to email@yourdomain.com and I’ll send links directly.</p></noscript>
+
+<script src="assets/photos/ratios.js"></script>
+<script src="content.js"></script>
+<script src="app.js"></script>
+<!--/BODY-->
+</body>
+</html>
