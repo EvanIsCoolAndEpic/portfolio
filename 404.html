@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Evan Egan</title>
+<script>
+  /* Old esegan.com (Squarespace) addresses land in the matching book; anything else goes home. */
+  (function () {
+    var base = /github\.io$/.test(location.hostname) ? '/portfolio/' : '/';
+    var p = ('/' + location.pathname.slice(base.length)).toLowerCase().replace(/\/+$/, '');
+    var map = [
+      ['/blog-3-1/blog-post-title-one-sw83t', '#eng.ssop'],
+      ['/blog-3-1/blog-post-title-four-jzftg', '#eng.blow-up-your-feet'],
+      ['/blog-3-1/in-progress-diy-dslr-trap-my-ideas', '#eng.dslr-camera-trap'],
+      ['/blog-3-1', '#eng'],
+      ['/film-1', '#film'],
+      ['/film', '#film'],
+      ['/services-6-1', '#photo'],
+      ['/photography', '#photo']
+    ];
+    var hash = '';
+    for (var i = 0; i < map.length; i++) {
+      if (p === map[i][0] || p.indexOf(map[i][0] + '/') === 0) { hash = map[i][1]; break; }
+    }
+    location.replace(base + hash);
+  })();
+</script>
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#ece4d0;color:#161616;font:16px/1.5 system-ui,sans-serif}</style>
+</head>
+<body><p>Taking you to the portfolio.</p></body>
+</html>
