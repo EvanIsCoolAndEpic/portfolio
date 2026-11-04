@@ -383,6 +383,12 @@ a{color:inherit}
 .pk-nb-text .pg{font-size:clamp(11.5px,2.4cqw,15px);gap:2.4cqw}
 .pk-nb-fig .plate figcaption b{color:var(--paper-ink);font-weight:500;margin-right:.5em}
 .pk-nb-fig .credits{margin-top:1cqw}
+/* report pages: one section each */
+.pk-nb-report .pg{font-size:clamp(11px,2.3cqw,14.5px);gap:2.2cqw;line-height:1.55}
+.rp-h{margin:0;font-family:var(--f-title);font-weight:var(--t-weight);text-transform:var(--t-case);letter-spacing:var(--t-ls);font-size:clamp(17px,4.6cqw,28px);line-height:1.05;text-wrap:balance}
+.rp-list{margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:.35em;text-wrap:pretty}
+.rp-list li::marker{color:var(--accent)}
+.page.nb-gridpaper{background:linear-gradient(color-mix(in srgb,var(--c) 14%,transparent) 1px,transparent 1px) 0 0/5cqw 5cqw,linear-gradient(90deg,color-mix(in srgb,var(--c) 14%,transparent) 1px,transparent 1px) 0 0/5cqw 5cqw,var(--paper-bg)}
 /* generated placeholder art */
 .art{position:relative;display:block}
 .grainy{position:relative;overflow:hidden}

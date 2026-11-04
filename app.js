@@ -312,6 +312,12 @@
         p.start = pages.length;
         p.fig = ++fig;
         add(f === 'film' ? { t: 'film-a', p } : { t: 'nb-text', p }, f === 'film' ? { t: 'film-b', p } : { t: 'nb-fig', p });
+        // a notebook project can carry a longer report: one section per page after the figure,
+        // padded to a full spread so the next project still opens on a left-hand page
+        if (f === 'notebook' && Array.isArray(p.report)) {
+          p.report.forEach((sec, k) => add({ t: 'nb-report', p, sec, k }));
+          if (!one && p.report.length % 2) add({ t: 'nb-grid', p });
+        }
         p.end = pages.length - 1;
       });
       b.endPage = pages.length;
@@ -438,6 +444,17 @@
         h = `<div class="pg pg-text"><h3 class="ph">${esc(p.title)}</h3><p class="pmeta">${metaLine(p)}</p>${body}${p.note ? `<p class="note">${esc(p.note)}</p>` : ''}${folio(i)}</div>`;
         break;
       }
+      case 'nb-report': {
+        const { p, sec, k } = d;
+        const paras = (sec.p || []).map(t => `<p>${esc(t)}</p>`).join('');
+        const list = sec.list ? `<ul class="rp-list">${sec.list.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : '';
+        h = `<div class="pg pg-report"><p class="nb-h">${esc(p.title)} · ${k + 1} of ${p.report.length}</p><h4 class="rp-h">${esc(sec.h)}</h4><div class="body">${paras}</div>${list}${sec.note ? `<p class="note">${esc(sec.note)}</p>` : ''}${folio(i)}</div>`;
+        break;
+      }
+      case 'nb-grid':
+        extra = ' nb-gridpaper';
+        h = `<div class="pg">${folio(i)}</div>`;
+        break;
       case 'nb-fig': {
         const p = d.p, it = p.items[0];
         const fig = it ? zoom(p, it, mediaHTML(it, 'plate')) : '';
