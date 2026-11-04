@@ -130,9 +130,9 @@ window.PORTFOLIO = {
     },
 
     {
-      id: 'eng', title: 'Engineering', format: 'notebook', peek: '2 builds', blurb: 'Machine learning, game physics, hardware',
+      id: 'eng', title: 'Engineering', format: 'notebook', peek: '3 builds', blurb: 'Machine learning, game physics, desktop apps, hardware',
       spine: { w: 66, h: 256 },
-      intro: 'Things I built to solve a problem I actually had, from a machine learning tool for my high school to game physics and a camera trap.',
+      intro: 'Things I built to solve a problem I actually had, from a machine learning tool for my high school to game physics, a Mac app for DJ sets and a camera trap.',
       projects: [
         { slug: 'ssop', title: 'Student Shadow Observation Protocol', type: 'Machine learning tool', year: '2024',
           problem: 'A teacher asked me to fix a Google Sheet used to track one-on-one student observations. It was hard-coded, broken, and hard for teachers to read.',
@@ -153,6 +153,63 @@ window.PORTFOLIO = {
           figCaption: 'The custom propulsion function, simplified.',
           media: [],
           placeholder: { kind: 'code', code: 'public void ApplyCustomPropulsion(Rigidbody rb, Vector3 origin, float baseForce)\n{\n  Vector3 dir = (rb.position - origin).normalized;\n  dir += Vector3.up * 0.1f;  // slight upward bias\n\n  float d = Vector3.Distance(rb.position, origin);\n  float force = baseForce / (1f + d * d);  // inverse square\n\n  rb.AddForce(dir.normalized * force, ForceMode.Impulse);\n}' } },
+
+        { slug: 'set-downloader', title: 'Set Downloader', type: 'Mac app', year: '2026',
+          problem: 'A DJ set’s tracklist can be anywhere: a YouTube description or pinned comment, a Spotify playlist, a screenshot, a 1001Tracklists page. Getting those tracks into one folder, in set order, meant doing it one track at a time.',
+          built: 'A Mac app that reads a tracklist from almost anything and downloads every track into one folder with a playlist in set order. It tries Soulseek first, then YouTube for what Soulseek doesn’t have, then cuts the track out of the set’s own recording. A Python server runs each job and streams progress to a React interface.',
+          result: 'One window from tracklist to finished folder, summed up as “28 Soulseek, 4 YouTube, 2 from the mix, 3 missing”, with a Fix panel for every track. It ships as one self-contained app, backed by 118 tests that never touch the real Soulseek or YouTube.',
+          tools: 'Python, React, TypeScript, pywebview, PyInstaller, yt-dlp, ffmpeg, pytest. Built with Claude Code.',
+          note: 'one login, one lane',
+          link: { label: 'View on GitHub', url: 'https://github.com/EvanIsCoolAndEpic/Set-Downloader-2-Soulseek' },
+          figCaption: 'The fallback chain, simplified: each job queues the next source that still has work, carrying the rest of the plan.',
+          media: [],
+          placeholder: { kind: 'code', code: 'def _next_step(self, folder, plan, key):\n    steps = list(plan["steps"])\n    while steps:\n        step = steps.pop(0)\n        # no set yet: the first download failed\n        if cli.page_copy(folder) is None:\n            return None\n        rest = dict(plan, steps=steps)\n        job = self._step_job(step, folder, plan)\n        if job is not None:\n            job.key = key\n            # when this job ends, continue with the rest\n            job.after = lambda j, r=rest: \\\n                self._continue(j, folder, r)\n            return self.jobs.submit(job)\n    return None' },
+          // The full report: one page per section, after the figure.
+          report: [
+            { h: 'From tracklist to folder',
+              p: [
+                'Paste text and it becomes a draft right away. A link from YouTube, SoundCloud, Mixcloud, Spotify or Apple Music is read in the background, description, chapters and comments included, and the candidates are ranked. The preview says where the list came from, such as a pinned comment, and offers the other tracklists it found.',
+                'Dropped files work too: a CSV, an M3U playlist or CUE sheet, a saved 1001Tracklists page, or a screenshot, read with the Mac’s built-in text recognition.',
+                'Press Download and every track lands in ~/Music/1001Tracklists/<set>/, with an .m3u8 playlist in set order, a list of what’s missing and a copy of the page. The set’s header says where each track came from, and a track’s Fix panel can search again, find it on YouTube, cut it from the set, use your own file, or link to Bandcamp and Beatport to buy it.',
+              ] },
+            { h: 'One window, many processes',
+              p: [
+                'The app is a pywebview window around a small Python HTTP server on a random local port. Every download, search and fix runs as a child process. A packaged app has no Python to call, so it launches its own executable again with --tl2mixxx or --helper.',
+                'Children report through progress lines and a JSON result file. The server numbers every event, keeps the last 2,000 for replay, and streams them to the interface over Server-Sent Events, so a dropped connection can pick up where it left off.',
+                'Jobs run in lanes. The Soulseek lane runs one job at a time, because one account can only be logged in once, and YouTube runs beside it. Each set’s folder is locked, and a job waiting on a busy set lets the others go first. Stop closes the job’s input, then sends SIGTERM to its whole process group, then SIGKILL.',
+              ] },
+            { h: 'When Soulseek doesn’t have it',
+              p: [
+                'Soulseek only finds files whose path contains every word searched for, so “ft. Guest” or “(Remixer Remix)” can hide a file that is there. A retry searches harder, and Find renamed tracks runs a ladder of broader searches through tl2mixxx, keeping only the files that surely match.',
+                'Whatever is still missing moves down the chain on its own. YouTube comes next, taking only results that surely are the track and labelling them as lossy. Then the track is cut out of the set’s recording using its time in the mix. Last, files are converted and tagged. The plan is copied when Download is pressed and the whole chain shares one key, so pressing Download twice can’t start it twice.',
+                'When Soulseek refuses the login, the app stops the job itself, then opens one connection to Soulseek’s server and sends nothing. An instant hang-up means the network is banned, and a timeout means the account was refused. The set says which, and YouTube and the cut still run.',
+              ] },
+            { h: 'A local server that only answers its own window',
+              p: ['Any website the user visits can send requests to a server on localhost, so each request has to prove it came from the app’s own window.'],
+              list: [
+                'A random token for each launch, passed in the URL fragment so it never reaches a server log, and compared in constant time.',
+                'Host, Origin and Sec-Fetch-Site checks against DNS rebinding and cross-site requests, plus a strict Content Security Policy.',
+                'A set’s path must resolve inside the music folder, so a symlink can’t lead out of it.',
+                'A search can’t start with a dash, and options go in as --key=value, so typed text can’t become a command-line flag.',
+                'Links that resolve to the Mac itself or the local network are refused.',
+                'The yt-dlp updater only takes a GitHub release that matches its SHA-256 and imports cleanly in a child process first.',
+              ] },
+            { h: 'Testing and shipping',
+              p: [
+                'The 118 tests drive a live server over HTTP with real child processes. A fake sockseek writes Soulseek’s real index format and can be told to miss tracks, hang or refuse the login. A fake tl2mixxx swaps YouTube downloads for ffmpeg sine tones.',
+                'They cover the security checks, a process that ignores SIGTERM, lane ordering, login refusal against fake servers, corrupt settings files, and a yt-dlp update with a bad checksum.',
+                'One script builds the interface, bundles everything with PyInstaller, adds sockseek, re-signs the app and smoke-tests the result. The finished app is about 205 MB and runs on Apple Silicon.',
+              ] },
+            { h: 'Scope and limits',
+              p: ['Set Downloader is the window around tl2mixxx and sockseek: the job control, the safety checks and the interface. The tracklist parsing, match scoring and cutting live in tl2mixxx. I built it with Claude Code, which co-authored most of the commits. What it doesn’t do yet:'],
+              list: [
+                'The React interface has no tests yet.',
+                'Jobs live in memory, so quitting loses the queue.',
+                'The Soulseek password is kept in a file only the user can read, not in the Keychain.',
+                'Login refusal is detected from sockseek’s log wording, which could change.',
+                'The app is ad-hoc signed and built for Apple Silicon only.',
+              ] },
+          ] },
 
         { slug: 'dslr-camera-trap', title: 'DIY DSLR Camera Trap', type: 'Hardware, in progress', year: '2025', hidden: true,  // set hidden: false to show it again
           text: ['A DIY camera trap built around a DSLR, for photographing wildlife. Still at the planning stage.'],
