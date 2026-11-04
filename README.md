@@ -61,6 +61,8 @@ Each book sets `format`, which decides how its pages are designed:
   on the left and `award`, `credits` and the watch link on the right.
 - **`notebook`**: an engineering notebook with `problem`, `built` and `result`, and the first
   media item shown as a numbered figure with `figCaption`.
+  For a longer write-up, add `report: [{ h: 'Heading', p: ['Paragraph'], list: ['Point'] }, ...]`:
+  each section gets its own page after the figure (Set Downloader has one).
 
 ## Links you can share
 
