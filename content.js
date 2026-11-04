@@ -382,15 +382,24 @@ window.PORTFOLIO = {
     },
 
     {
-      id: 'modeling', title: 'Modeling', format: 'photo', unit: 'render', peek: 'in progress', blurb: 'In progress',
+      id: 'modeling', title: 'Modeling', format: 'photo', peek: 'in progress', blurb: 'In progress',
       spine: { w: 60, h: 272 },
       intro: '',
+      // These photos are of you, not by you, so the last page credits the photographers instead.
+      byline: 'Photographers are credited in each chapter.',
       projects: [
-        // Uses the photo book layout: one chapter per model, renders packed into grids.
-        // Export renders to a folder, then: python3 tools/add-photos.py "/path/to/renders" my-model
-        // { slug: 'my-model', title: 'My Model', part: 'Characters', text: ['What it is and what it was made in.'],
-        //   media: PH('my-model', [
-        //     [1, 'Describe the render'],
+        // Uses the photo book layout: one chapter per shoot or show, grouped into parts.
+        // Add a folder of photos with: python3 tools/add-photos.py "/path/to/Folder" my-shoot
+        // `credits` show on the chapter's first page. Portrait photos pair up automatically.
+        // { slug: 'my-shoot', title: 'Shoot or brand name', part: 'Editorial', text: ['One line about the shoot.'],
+        //   credits: [['Photographer', 'Name'], ['Styling', 'Name'], ['Brand', 'Name']],
+        //   media: PH('my-shoot', [
+        //     [1, 'Describe the photo'],
+        //   ]) },
+        // { slug: 'my-show', title: 'Show name, season', part: 'Runway', text: ['Designer, venue and city.'],
+        //   credits: [['Designer', 'Name'], ['Photographer', 'Name']],
+        //   media: PH('my-show', [
+        //     [1, 'Describe the photo'],
         //   ]) },
       ],
     },

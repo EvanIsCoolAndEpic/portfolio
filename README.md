@@ -55,7 +55,8 @@ Each book sets `format`, which decides how its pages are designed:
   This makes web-sized copies in `assets/photos/chapter-slug/` with all camera and GPS data
   stripped, records each photo's shape, and prints a chapter block to paste into `content.js`.
   Write a short alt text for each photo, and delete the lines for any you don't want.
-  Set `unit` on the book to change the word used in counts (Modeling uses `unit: 'render'`).
+  A chapter can list `credits` (photographer, styling, designer), shown on its first page. A book can set
+  `byline` to replace "photographs by you" on its last page; Modeling does, since those photos are of you.
 - **`film`**: a screening programme. The first still runs across both pages, with the synopsis
   on the left and `award`, `credits` and the watch link on the right.
 - **`notebook`**: an engineering notebook with `problem`, `built` and `result`, and the first

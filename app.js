@@ -223,7 +223,7 @@
   const fmt = b => b.format || 'notebook';
   // A book with no projects yet opens as a blank book: ruled, empty contents and an "in progress" note.
   const isBlank = b => !b.projects.length;
-  const unitN = (b, n) => `${n} ${b.unit || 'photograph'}${n === 1 ? '' : 's'}`;
+  const photosN = n => `${n} photograph${n === 1 ? '' : 's'}`;
   const blankRows = (cls, n) => `<ol class="${cls} toc-blank" aria-hidden="true">${'<li></li>'.repeat(n)}</ol>`;
 
   /* ----- photo book: square pages packed edge to edge ----- */
@@ -345,7 +345,8 @@
   function coverHTML() {
     if (fmt(V) === 'photo') {
       const it = V.cover ? V.projects.flatMap(p => p.items).find(x => x.id === V.cover) : (V.projects[0] && V.projects[0].items[0]);
-      return `<div class="ph-cover"><span class="tip${it ? '' : ' blank'}">${it ? fill_(it) : ''}</span><h2 class="ph-cover-t">${esc(V.title)}</h2><span class="ph-cover-by">${esc(C.name)}</span></div>`;
+      // the window follows the cover photo's shape; a blank book shows an empty portrait plate
+      return `<div class="ph-cover"><span class="tip${it ? (orient(it) === 'P' ? ' is-p' : '') : ' blank is-p'}">${it ? fill_(it) : ''}</span><h2 class="ph-cover-t">${esc(V.title)}</h2><span class="ph-cover-by">${esc(C.name)}</span></div>`;
     }
     return `<div class="cover-in"><h2 class="cv-title">${esc(V.title)}</h2><span class="cv-sub">${esc(C.name)}</span><span class="mark cv-mark" aria-hidden="true">${mono}</span></div>`;
   }
@@ -377,7 +378,7 @@
       }
       case 'ph-open': {
         const p = d.p, it = d.it;
-        const text = `<div class="ph-open-text"><h3 class="ph-t">${esc(p.title)}</h3>${(p.text || []).map(t => `<p>${esc(t)}</p>`).join('')}<p class="ph-small">${unitN(V, p.orig.length)}</p></div>`;
+        const text = `<div class="ph-open-text"><h3 class="ph-t">${esc(p.title)}</h3>${(p.text || []).map(t => `<p>${esc(t)}</p>`).join('')}${credits(p)}<p class="ph-small">${photosN(p.orig.length)}</p></div>`;
         h = `<div class="ph-open ${it && orient(it) === 'P' ? 'is-p' : 'is-l'}">${it ? `<div class="ph-cell c0">${zoom(p, it, phImg(it, true), 'ph-zoom')}</div>` : ''}${text}</div>${phFoot(i, p)}`;
         break;
       }
@@ -392,7 +393,7 @@
         break;
       case 'ph-colophon': {
         const n = V.projects.reduce((s, p) => s + p.orig.length, 0);
-        h = `<div class="ph-text"><p class="ph-fore">${esc(V.intro || '')}</p><p class="ph-small">${n ? `${esc(unitN(V, n))} by ${esc(C.name)}.` : 'More soon.'}</p>${contactBlock()}<div class="end-books">${otherBooks()}</div></div>`;
+        h = `<div class="ph-text"><p class="ph-fore">${esc(V.intro || '')}</p><p class="ph-small">${!n ? 'More soon.' : V.byline ? `${photosN(n)}. ${esc(V.byline)}` : `${photosN(n)} by ${esc(C.name)}.`}</p>${contactBlock()}<div class="end-books">${otherBooks()}</div></div>`;
         break;
       }
 
