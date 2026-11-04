@@ -10,6 +10,9 @@
     'film'      a screening programme: a wide still across both pages, synopsis, credits, award.
     'notebook'  an engineering notebook: problem, what I built, result, and a numbered figure.
 
+  A book with no projects yet (projects: []) still sits on the shelf and opens as a blank book
+  marked "in progress". It stays out of the All work filters until its first project goes in.
+
   Media item shapes:
     { type: 'image', src: 'assets/photo.jpg', alt: 'What is in the picture' }
     { type: 'video', embed: 'https://player.vimeo.com/video/123456789', url: 'https://vimeo.com/123456789', poster: 'assets/poster.jpg', alt: '...' }
@@ -358,6 +361,37 @@ window.PORTFOLIO = {
             [28, 'Friends laughing outside'],
             [29, 'A table of students in the classroom'],
           ]) },
+      ],
+    },
+
+    /* ----- Blank for now. Fill in `projects` (and swap `peek`, `blurb` and `intro`) when the work is ready. ----- */
+
+    {
+      id: 'games', title: 'Game Design', format: 'film', peek: 'in progress', blurb: 'In progress',
+      spine: { w: 54, h: 244 },
+      intro: '',
+      projects: [
+        // Uses the film layout: key art or a trailer across the spread, the pitch, credits and a play link.
+        // { slug: 'my-game', title: 'My Game', type: 'Unity game, team project', year: '2026',
+        //   award: '',                                     // e.g. a game jam placing; leave empty to hide
+        //   text: ['What the game is, and what I designed.'],
+        //   credits: [['Role', 'Game designer'], ['Team', 'Names'], ['Engine', 'Unity']],
+        //   link: { label: 'Play on itch.io', url: 'https://...' },
+        //   media: [vimeo('123456789', 'assets/games/my-game.jpg', 'Describe the still')] },
+      ],
+    },
+
+    {
+      id: 'modeling', title: 'Modeling', format: 'photo', unit: 'render', peek: 'in progress', blurb: 'In progress',
+      spine: { w: 60, h: 272 },
+      intro: '',
+      projects: [
+        // Uses the photo book layout: one chapter per model, renders packed into grids.
+        // Export renders to a folder, then: python3 tools/add-photos.py "/path/to/renders" my-model
+        // { slug: 'my-model', title: 'My Model', part: 'Characters', text: ['What it is and what it was made in.'],
+        //   media: PH('my-model', [
+        //     [1, 'Describe the render'],
+        //   ]) },
       ],
     },
   ],

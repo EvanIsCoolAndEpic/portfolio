@@ -172,7 +172,7 @@
   }
   function buildWork() {
     $('#filters').innerHTML = [`<button class="chip" data-filter="all" aria-pressed="true">All</button>`]
-      .concat(BOOKS.map(b => `<button class="chip" data-filter="${esc(b.id)}" aria-pressed="false">${esc(b.title)}</button>`)).join('');
+      .concat(BOOKS.filter(b => b.projects.length).map(b => `<button class="chip" data-filter="${esc(b.id)}" aria-pressed="false">${esc(b.title)}</button>`)).join('');
     $('#cards').innerHTML = ALL.map(p => `<li data-book="${esc(p.book.id)}"${p.k === 0 ? ' class="featured"' : ''}><a class="card" href="#${esc(p.book.id)}.${esc(p.slug)}" data-open="${esc(p.book.id)}" data-slug="${esc(p.slug)}" data-slot="${p.book.slot}" style="--c:var(--b${p.book.slot})">`
       + `<span class="thumb">${thumbHTML(p)}</span><span class="card-text"><span class="card-title">${esc(p.title)}</span><span class="card-kicker">${metaLine(p)}</span></span></a></li>`).join('');
   }
@@ -221,6 +221,10 @@
      'film' a screening programme, 'notebook' an engineering notebook. Pages are built
      per mode because a photo running across two pages becomes one page on a phone. */
   const fmt = b => b.format || 'notebook';
+  // A book with no projects yet opens as a blank book: ruled, empty contents and an "in progress" note.
+  const isBlank = b => !b.projects.length;
+  const unitN = (b, n) => `${n} ${b.unit || 'photograph'}${n === 1 ? '' : 's'}`;
+  const blankRows = (cls, n) => `<ol class="${cls} toc-blank" aria-hidden="true">${'<li></li>'.repeat(n)}</ol>`;
 
   /* ----- photo book: square pages packed edge to edge ----- */
   const orient = it => ((it.ratio || 1.5) < 1 ? 'P' : 'L');
@@ -341,7 +345,7 @@
   function coverHTML() {
     if (fmt(V) === 'photo') {
       const it = V.cover ? V.projects.flatMap(p => p.items).find(x => x.id === V.cover) : (V.projects[0] && V.projects[0].items[0]);
-      return `<div class="ph-cover"><span class="tip">${it ? fill_(it) : ''}</span><h2 class="ph-cover-t">${esc(V.title)}</h2><span class="ph-cover-by">${esc(C.name)}</span></div>`;
+      return `<div class="ph-cover"><span class="tip${it ? '' : ' blank'}">${it ? fill_(it) : ''}</span><h2 class="ph-cover-t">${esc(V.title)}</h2><span class="ph-cover-by">${esc(C.name)}</span></div>`;
     }
     return `<div class="cover-in"><h2 class="cv-title">${esc(V.title)}</h2><span class="cv-sub">${esc(C.name)}</span><span class="mark cv-mark" aria-hidden="true">${mono}</span></div>`;
   }
@@ -360,6 +364,7 @@
         h = `<div class="ph-text ph-center"><h2 class="ph-t">${esc(V.title)}</h2><p class="ph-small">${esc(C.name)}</p></div>`;
         break;
       case 'ph-contents': {
+        if (isBlank(V)) { h = `<div class="ph-text ph-toc-pg"><h3 class="ph-t">Contents</h3>${blankRows('ph-toc', 7)}<p class="ph-small">In progress</p></div>`; break; }
         const parts = [];
         V.projects.forEach(p => { const k = p.part || ''; let g = parts.find(x => x.k === k); if (!g) parts.push(g = { k, list: [] }); g.list.push(p); });
         h = `<div class="ph-text ph-toc-pg"><h3 class="ph-t">Contents</h3>${parts.map(g => `<div class="ph-toc-part">${g.k ? `<p class="ph-small">${esc(g.k)}</p>` : ''}<ol class="ph-toc">${g.list.map(p => `<li><button data-goto="${p.start}"><span class="t">${esc(p.title)}</span><span class="c">${p.orig.length}</span><span class="n">${p.start + 1}</span></button></li>`).join('')}</ol></div>`).join('')}</div>`;
@@ -372,7 +377,7 @@
       }
       case 'ph-open': {
         const p = d.p, it = d.it;
-        const text = `<div class="ph-open-text"><h3 class="ph-t">${esc(p.title)}</h3>${(p.text || []).map(t => `<p>${esc(t)}</p>`).join('')}<p class="ph-small">${p.orig.length} photograph${p.orig.length === 1 ? '' : 's'}</p></div>`;
+        const text = `<div class="ph-open-text"><h3 class="ph-t">${esc(p.title)}</h3>${(p.text || []).map(t => `<p>${esc(t)}</p>`).join('')}<p class="ph-small">${unitN(V, p.orig.length)}</p></div>`;
         h = `<div class="ph-open ${it && orient(it) === 'P' ? 'is-p' : 'is-l'}">${it ? `<div class="ph-cell c0">${zoom(p, it, phImg(it, true), 'ph-zoom')}</div>` : ''}${text}</div>${phFoot(i, p)}`;
         break;
       }
@@ -387,19 +392,20 @@
         break;
       case 'ph-colophon': {
         const n = V.projects.reduce((s, p) => s + p.orig.length, 0);
-        h = `<div class="ph-text"><p class="ph-fore">${esc(V.intro || '')}</p><p class="ph-small">${n} photographs by ${esc(C.name)}.</p>${contactBlock()}<div class="end-books">${otherBooks()}</div></div>`;
+        h = `<div class="ph-text"><p class="ph-fore">${esc(V.intro || '')}</p><p class="ph-small">${n ? `${esc(unitN(V, n))} by ${esc(C.name)}.` : 'More soon.'}</p>${contactBlock()}<div class="end-books">${otherBooks()}</div></div>`;
         break;
       }
 
       /* shared front and back matter */
       case 'title':
-        h = `<div class="pg pg-title"><h2 class="tp-title">${esc(V.title)}</h2>${V.intro ? `<p class="lede">${esc(V.intro)}</p>` : ''}<p class="tp-meta">${V.projects.length} project${V.projects.length === 1 ? '' : 's'}${V.years ? ` · ${V.years}` : ''}</p></div>`;
+        h = `<div class="pg pg-title"><h2 class="tp-title">${esc(V.title)}</h2>${V.intro ? `<p class="lede">${esc(V.intro)}</p>` : ''}<p class="tp-meta">${isBlank(V) ? 'In progress' : `${V.projects.length} project${V.projects.length === 1 ? '' : 's'}${V.years ? ` · ${V.years}` : ''}`}</p></div>`;
         break;
       case 'contents':
+        if (isBlank(V)) { h = `<div class="pg pg-contents"><h3 class="pg-label">Contents</h3>${blankRows('toc', 6)}<p class="note">pages to come</p>${folio(i)}</div>`; break; }
         h = `<div class="pg pg-contents"><h3 class="pg-label">Contents</h3><ol class="toc">${V.projects.map(p => `<li><button data-goto="${p.start}"><span class="t">${esc(p.title)}${p.award ? ` ${icon('trophy', 'toc-award')}` : ''}</span><span class="y">${esc(p.year)}</span><span class="n">${p.start + 1}</span></button></li>`).join('')}</ol>${folio(i)}</div>`;
         break;
       case 'end':
-        h = `<div class="pg pg-end"><h3 class="ph">Thanks for reading.</h3>${contactBlock()}<div class="end-books">${otherBooks()}</div>${folio(i)}</div>`;
+        h = `<div class="pg pg-end"><h3 class="ph">${isBlank(V) ? 'More soon.' : 'Thanks for reading.'}</h3>${contactBlock()}<div class="end-books">${otherBooks()}</div>${folio(i)}</div>`;
         break;
       case 'back':
         extra = ' endpaper-pat';
@@ -522,6 +528,7 @@
     lastFocus = from || document.activeElement;
     single = narrow.matches; V = b; P = buildPages(b, single); pos = -1; busy = false;
     spread.dataset.format = fmt(b);
+    spread.dataset.slot = b.slot;
     spread.querySelectorAll('.leaf').forEach(l => l.remove());
     spread.style.setProperty('--c', `var(--b${b.slot})`);
     spread.style.setProperty('--fc', `var(--f${b.slot})`);

@@ -89,6 +89,13 @@ a{color:inherit}
 .flat.under{background:#8a8170;border:0}
 .lean{background:#8a8170;border:0}
 .peek{font-family:var(--f-ui);font-size:max(12px,calc(var(--u)*12));text-transform:uppercase;letter-spacing:.14em;background:#161616;color:#f4eedf;padding:6px 10px 4px}
+/* slot 4 (black, Game Design): a stepped, pixel-block top */
+.book[data-fill="4"]:not(.flat)::before{content:"";position:absolute;left:0;right:0;bottom:calc(100% - 1px);height:calc(var(--u)*15 + 1px);background:var(--c);clip-path:polygon(0 100%,0 66.67%,33.33% 66.67%,33.33% 33.33%,66.67% 33.33%,66.67% 0,100% 0,100% 100%)}
+.book[data-fill="4"]:not(.flat) .peek{bottom:calc(100% + var(--u)*29)}
+.book[data-fill="4"]:not(.flat) .ribbon{top:calc(var(--u)*-34)}
+/* slot 5 (cream, Modeling): an isometric wireframe grid */
+:root{--iso:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34.64' height='20' viewBox='0 0 34.64 20'%3E%3Cpath d='M0 0V20M17.32 0V20M34.64 0V20M0 0L34.64 20M0 20L34.64 0' fill='none' stroke='%23161616' stroke-opacity='.2' stroke-width='1' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")}
+.book[data-fill="5"]{background:var(--iso) center top/calc(var(--u)*20.78) calc(var(--u)*12),var(--c)}
 /* decor pieces */
 /* sections */
 .section{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding-block:clamp(56px,8vw,104px)}
@@ -250,6 +257,16 @@ a{color:inherit}
 .end-books{display:flex;flex-wrap:wrap;gap:1.6cqw}
 .pg-back{align-items:center;justify-content:center}
 .pg-back .mark{width:12cqw;height:12cqw;font-size:4cqw;color:var(--paper-muted)}
+/* blank books: ruled, empty contents */
+.toc-blank{list-style:none;margin:0;padding:0}
+.toc-blank li{height:2.3em;border-bottom:1px dashed color-mix(in srgb,var(--paper-ink) 26%,transparent)}
+.ph-toc.toc-blank li{height:1.95em;border-bottom-style:solid;border-bottom-color:color-mix(in srgb,var(--paper-ink) 14%,transparent)}
+.pg-contents .toc-blank+.note{margin-top:2cqw}
+/* covers carry their spine's motif */
+.spread[data-slot="4"] .cover-in::before{content:"";position:absolute;top:0;right:0;width:42cqw;aspect-ratio:1;background:var(--fc);clip-path:polygon(0 0,100% 0,100% 100%,75% 100%,75% 75%,50% 75%,50% 50%,25% 50%,25% 25%,0 25%)}
+.spread[data-slot="5"] .page.cover,.spread[data-slot="5"] .page.ph-endpaper{background:var(--iso) center/5.2cqw 3cqw,var(--c)}
+.spread[data-slot="5"] .page.cover{box-shadow:inset 0 0 0 3px #161616,18px 24px 44px -16px rgba(0,0,0,.55)}
+.ph-cover .tip.blank{background:var(--pp);outline:3px solid #161616;outline-offset:0}
 .endpaper-pat{background:radial-gradient(circle at 25% 25%,color-mix(in srgb,var(--c) 30%,transparent) 0 1.1cqw,transparent 1.2cqw) 0 0/7cqw 7cqw,color-mix(in srgb,var(--c) 14%,var(--paper))}
 /* ===== book formats ===== */
 /* photo book: square pages packed edge to edge, thin gutters, running feet. Built to hold hundreds of photos. */

@@ -28,6 +28,10 @@ Open `content.js`. Every book, project, link and line of copy is in there.
   When `media` is empty, the drawn `placeholder` art shows instead, so you can fill things in gradually.
 - **Add a project.** Copy an existing project block and give it a unique `slug` (lowercase, dashes).
 - **Add or reorder books.** Edit the `books` list. Set `flat: true` on a book to lay it on its side.
+  A book's color comes from its place in the list (red, blue, yellow, black, cream, grey), so reordering recolors them.
+- **Blank books.** A book with `projects: []` still sits on the shelf and opens as a blank book marked
+  "in progress". It stays out of the All work filters until it has a project. Game Design and Modeling
+  are blank for now, with a commented example project in each to copy.
 - **Contact details.** Set `email`, `links`, `location`, `availability`, and `resume` (a path to a PDF in `assets/`).
 - **Portrait.** Set `about.photo` to an image path. When it's empty, your monogram shows instead.
 
@@ -51,6 +55,7 @@ Each book sets `format`, which decides how its pages are designed:
   This makes web-sized copies in `assets/photos/chapter-slug/` with all camera and GPS data
   stripped, records each photo's shape, and prints a chapter block to paste into `content.js`.
   Write a short alt text for each photo, and delete the lines for any you don't want.
+  Set `unit` on the book to change the word used in counts (Modeling uses `unit: 'render'`).
 - **`film`**: a screening programme. The first still runs across both pages, with the synopsis
   on the left and `award`, `credits` and the watch link on the right.
 - **`notebook`**: an engineering notebook with `problem`, `built` and `result`, and the first
@@ -58,8 +63,8 @@ Each book sets `format`, which decides how its pages are designed:
 
 ## Links you can share
 
-- `yoursite.com/#video` opens the Video book.
-- `yoursite.com/#video.night-shift` opens it at that project.
+- `esegan.com/#film` opens the Film book. The book ids are `film`, `eng`, `photo`, `games` and `modeling`.
+- `esegan.com/#film.the-elephant` opens it at that project.
 - Inside a book, **Copy link** copies the current project's link.
 
 ## Previewing locally
