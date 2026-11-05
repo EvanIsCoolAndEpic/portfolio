@@ -16,6 +16,7 @@
   --hound:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h4v1h-4zM6 0h2v1h-2zM0 1h4v1h-4zM5 1h2v1h-2zM0 2h6v1h-6zM0 3h5v1h-5zM7 3h1v1h-1zM0 4h2v1h-2zM0 5h1v1h-1zM3 5h1v1h-1zM2 6h2v1h-2zM1 7h2v1h-2z' fill='%23161616'/%3E%3C/svg%3E");
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-title);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
 .band{height:14px;background:var(--hound) 0 0/14px 14px;border-bottom:3px solid var(--ink)}
@@ -32,11 +33,13 @@ h1{margin:0;font-weight:700;text-transform:uppercase;letter-spacing:.02em;font-s
 .stats{display:flex;flex-wrap:wrap;gap:14px 40px;margin:0;padding:18px 0 16px;border-bottom:1px solid var(--rule)}
 .stats dt{font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .stats dd{margin:4px 0 0;font-weight:700;font-size:18px;line-height:1.2}
-.grid{list-style:none;margin:28px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:14px}
-.shot{all:unset;box-sizing:border-box;display:block;width:100%;cursor:zoom-in;background:var(--cell);aspect-ratio:var(--cellr,2/3);position:relative;overflow:hidden}
+.sec{margin-top:36px}
+.sec h2{margin:0 0 14px;font-family:var(--f-mono);font-weight:500;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:14px}
+.shot{all:unset;box-sizing:border-box;display:block;width:100%;cursor:zoom-in;background:var(--cell);aspect-ratio:var(--cellr,.8);position:relative;overflow:hidden}
 .shot img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block}
 .cap{margin:6px 0 0;font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-.empty{padding:60px 0;text-align:center;color:var(--muted);font-family:var(--f-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+.empty{list-style:none;padding:60px 0;text-align:center;color:var(--muted);font-family:var(--f-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase}
 footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px 20px;margin-top:48px;padding:20px 0 40px;border-top:1px solid var(--rule);font-family:var(--f-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 footer a{color:inherit}
 /* full-size view */
@@ -61,13 +64,14 @@ dialog .btn:disabled{opacity:.3;cursor:default;background:transparent;color:#f4e
   Add photos with:   python3 tools/add-photos.py "/path/to/Digitals" --digitals
   That makes web copies in digitals/photos/ with all camera and GPS data stripped,
   and prints the lines for `photos` below (with each photo's shape filled in).
-  Order them the way agencies expect: headshot, profile, full length front, side, back.
+  A line with just a heading in quotes starts a new section, e.g. 'Headshots' or 'Full length'.
+  Each section's grid takes the shape of its own photos.
 
   Stats left empty are hidden.
 */
 window.DIGITALS = {
   name: 'Evan Egan',
-  taken: '',                       // e.g. 'November 2026'
+  taken: 'November 2026',
   email: 'evansegan2025@gmail.com',
   location: '',                    // e.g. 'Santa Cruz, CA'
   stats: [
@@ -80,8 +84,14 @@ window.DIGITALS = {
     ['Hair', ''],
     ['Eyes', ''],
   ],
-  // [number, 'what the shot is', width / height]
+  // 'Section heading', then [number, 'what the shot is', width / height]
   photos: [
+    'Headshots',
+    [1, 'Front', 0.8],
+    [2, 'Smile', 0.8],
+    [3, 'Three-quarter, left', 0.8],
+    [4, 'Profile, left', 0.8],
+    [5, 'Profile, right', 0.8],
   ],
 };
 </script>
@@ -99,7 +109,7 @@ window.DIGITALS = {
     </div>
   </header>
   <dl class="stats" id="stats"></dl>
-  <ul class="grid" id="grid"></ul>
+  <div id="grid"></div>
   <footer><span id="foot"></span><a href="../">Portfolio</a></footer>
 </div>
 
@@ -115,26 +125,33 @@ window.DIGITALS = {
   const D = window.DIGITALS, $ = s => document.querySelector(s);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const pad = n => String(n).padStart(3, '0');
-  const shots = (D.photos || []).map(([n, alt, ratio]) => ({ alt: alt || '', ratio: ratio || 2 / 3, lg: `photos/${pad(n)}-lg.jpg`, sm: `photos/${pad(n)}-sm.jpg` }));
+  // a heading string starts a section; every other entry is [number, caption, width / height]
+  const secs = [], shots = [];
+  (D.photos || []).forEach(e => {
+    if (typeof e === 'string') { secs.push({ h: e, list: [] }); return; }
+    if (!secs.length) secs.push({ h: '', list: [] });
+    const [n, alt, ratio] = e, sec = secs[secs.length - 1];
+    const s = { alt: alt || '', sec: sec.h, ratio: ratio || .8, i: shots.length, lg: `photos/${pad(n)}-lg.jpg`, sm: `photos/${pad(n)}-sm.jpg` };
+    sec.list.push(s); shots.push(s);
+  });
+  const label = s => [s.sec, s.alt].filter(Boolean).join(', ');
 
   $('#name').textContent = D.name;
   $('#kicker').textContent = ['Digitals', D.taken, D.location].filter(Boolean).join(' · ');
   $('#email').textContent = D.email;
   $('#mail').href = `mailto:${D.email}?subject=${encodeURIComponent(D.name + ' digitals')}`;
-  $('#foot').textContent = `${shots.length ? shots.length + ' photos, unretouched' : ''}`;
+  $('#foot').textContent = shots.length ? `${shots.length} photo${shots.length === 1 ? '' : 's'}` : '';
 
   const stats = (D.stats || []).filter(([, v]) => v);
   $('#stats').innerHTML = stats.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('');
   $('#stats').hidden = !stats.length;
 
-  // every cell takes the shape most of the photos share, and shows each photo whole (never cropped)
-  if (shots.length) {
-    const rs = shots.map(s => s.ratio).sort((a, b) => a - b);
-    document.documentElement.style.setProperty('--cellr', rs[Math.floor(rs.length / 2)]);
-  }
+  // each section's cells take the shape most of its photos share, and show every photo whole (never cropped)
+  const median = list => { const rs = list.map(s => s.ratio).sort((a, b) => a - b); return rs[Math.floor(rs.length / 2)]; };
+  const cell = s => `<li><button class="shot" type="button" data-i="${s.i}" aria-label="View larger: ${esc(label(s) || 'photo ' + (s.i + 1))}"><img src="${s.sm}" srcset="${s.sm} 720w, ${s.lg} 2000w" sizes="(min-width: 1240px) 400px, (min-width: 660px) 45vw, 100vw" alt="${esc(label(s))}" loading="${s.i < 4 ? 'eager' : 'lazy'}" decoding="async"></button>${s.alt ? `<p class="cap">${esc(s.alt)}</p>` : ''}</li>`;
   $('#grid').innerHTML = shots.length
-    ? shots.map((s, i) => `<li><button class="shot" type="button" data-i="${i}" aria-label="View larger: ${esc(s.alt || 'photo ' + (i + 1))}"><img src="${s.sm}" srcset="${s.sm} 720w, ${s.lg} 1600w" sizes="(min-width: 1240px) 300px, (min-width: 600px) 45vw, 100vw" alt="${esc(s.alt)}" loading="${i < 4 ? 'eager' : 'lazy'}" decoding="async"></button>${s.alt ? `<p class="cap">${esc(s.alt)}</p>` : ''}</li>`).join('')
-    : '<li class="empty">Digitals coming soon</li>';
+    ? secs.filter(g => g.list.length).map(g => `<section class="sec">${g.h ? `<h2>${esc(g.h)}</h2>` : ''}<ul class="grid" style="--cellr:${median(g.list)}">${g.list.map(cell).join('')}</ul></section>`).join('')
+    : '<p class="empty">Digitals coming soon</p>';
 
   async function copy(btn) {
     const label = 'Copy email';
@@ -149,9 +166,9 @@ window.DIGITALS = {
   let cur = -1, opener = null;
   function show(i) {
     cur = i; const s = shots[i];
-    $('#lbStage').innerHTML = `<img src="${s.lg}" alt="${esc(s.alt)}">`;
+    $('#lbStage').innerHTML = `<img src="${s.lg}" alt="${esc(label(s))}">`;
     $('#lbN').textContent = `${i + 1} / ${shots.length}`;
-    $('#lbCap').textContent = s.alt;
+    $('#lbCap').textContent = label(s);
     $('#lbPrev').disabled = i <= 0;
     $('#lbNext').disabled = i >= shots.length - 1;
   }
