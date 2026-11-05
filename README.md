@@ -64,6 +64,20 @@ Each book sets `format`, which decides how its pages are designed:
   For a longer write-up, add `report: [{ h: 'Heading', p: ['Paragraph'], list: ['Point'] }, ...]`:
   each section gets its own page after the figure (Set Downloader has one).
 
+## Digitals (unlisted)
+
+`esegan.com/digitals/` is a plain page of digitals for agencies: name, stats, contact and the photos,
+each shown whole and openable full size. Nothing on the site links to it and search engines are asked
+not to index it, so only people you send the link to will find it. The repository is public, though,
+so treat it as unlisted rather than private.
+
+Add or replace the photos (export HEIC as JPG first):
+```bash
+python3 tools/add-photos.py "/path/to/Digitals" --digitals
+```
+This writes metadata-free copies to `digitals/photos/` and prints the `photos` lines to paste into
+`digitals/index.html`, where the stats, date and location are edited too.
+
 ## Links you can share
 
 - `esegan.com/#film` opens the Film book. The book ids are `film`, `eng`, `photo`, `games` and `modeling`.
