@@ -226,7 +226,7 @@ window.PORTFOLIO = {
       cover: 'river-otters-9',
       intro: 'For the last five years photography has been my go-to creative outlet. Wildlife is my favorite, and the sideline is where I work.',
       projects: [
-        { slug: 'misc', title: 'Misc', part: 'Wildlife & landscape', text: ['Odds and ends from the last five years.'],
+        { slug: 'misc', title: 'Odds and Ends', part: 'Wildlife & landscape', text: ['From the last five years.'],
           media: PH('misc', [
             [1, 'Sunrise over a valley filled with fog'],
             [3, 'A black bear in low green brush'],
