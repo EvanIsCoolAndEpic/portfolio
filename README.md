@@ -43,10 +43,12 @@ Images look best around 2000px on the long edge, saved as JPG or WebP at roughly
 
 Each book sets `format`, which decides how its pages are designed:
 
-- **`photo`**: a dense photo book on square pages. Each project is a chapter, grouped into
-  `part`s. Photos are packed into tight grids automatically, in the order you list them: landscapes
-  share grids with landscapes and portraits with portraits, so crops stay gentle. The first photo
-  opens the chapter. Mark a landscape `{ feature: true }` to run it across a whole spread.
+- **`photo`**: a photobook on square pages. Each project is a chapter, grouped into `part`s, and each
+  part opens on a spread in the book's colour. A chapter opens with its text on the left and its first
+  photo on the right; the rest follow in the order you list them, one or two to a page with margins and
+  never cropped: portraits side by side, landscapes one above the other, now and then one small photo
+  alone on a page. Mark a landscape `{ feature: true }` to run it across a whole spread. The book's
+  `intro` becomes its foreword.
 
   **Adding a folder of photos:**
   ```bash

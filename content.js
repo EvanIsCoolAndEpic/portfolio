@@ -4,8 +4,8 @@
   Content was gathered from esegan.com and your photo folders. Every image is stored locally in /assets.
 
   Each book has a `format`, which decides how its pages are designed:
-    'photo'     a dense, square-page photo book. Each project is a chapter; photos are packed into
-                tight grids automatically in the order listed. Chapters are grouped by `part`.
+    'photo'     a photobook on square pages. Each project is a chapter, grouped by `part`. Photos
+                follow in the order listed, one or two to a page with margins, never cropped.
                 Mark a landscape { feature: true } to run it across a whole spread.
     'film'      a screening programme: a wide still across both pages, synopsis, credits, award.
     'notebook'  an engineering notebook: problem, what I built, result, and a numbered figure.

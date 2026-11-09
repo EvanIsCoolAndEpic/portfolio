@@ -215,9 +215,10 @@
 
   /* ---------- reader ---------- */
   const site = $('#site'), reader = $('#reader'), spread = $('#spread'), L = $('#pageL'), R = $('#pageR');
-  let V = null, P = [], pos = -1, single = false, busy = false, pushed = false, lastFocus = null;
+  let V = null, P = [], pos = -1, single = false, pushed = false, lastFocus = null;
+  let turning = null, turnTo = null, queued = null;   // the page turn under way, the spread it lands on, the next one asked for
 
-  /* Each book is designed for its medium. 'photo' is a dense photo book on square pages,
+  /* Each book is designed for its medium. 'photo' is a photobook on square pages,
      'film' a screening programme, 'notebook' an engineering notebook. Pages are built
      per mode because a photo running across two pages becomes one page on a phone. */
   const fmt = b => b.format || 'notebook';
@@ -226,69 +227,107 @@
   const photosN = n => `${n} photograph${n === 1 ? '' : 's'}`;
   const blankRows = (cls, n) => `<ol class="${cls} toc-blank" aria-hidden="true">${'<li></li>'.repeat(n)}</ol>`;
 
-  /* ----- photo book: square pages packed edge to edge ----- */
+  /* ----- photo book: one or two photographs to a page, set with margins like a printed photobook ----- */
   const orient = it => ((it.ratio || 1.5) < 1 ? 'P' : 'L');
-  const TPL = { full: 1, two: 2, top2: 3, top3: 4, six: 6, nine: 9, pp: 2, p3: 3, pl3: 4, pone: 1 };
-  const BIG = { full: [0], two: [0, 1], top2: [0], top3: [0], pp: [0, 1], p3: [0], pl3: [0], pone: [0], open: [0] };
-  const RHYTHM = ['top2', 'six', 'full', 'top3', 'six', 'two'];
-  const DENSE = ['six', 'top3', 'nine', 'six', 'top2', 'nine', 'full'];
+  const roman = n => ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][n] || String(n);
+  const pad2 = n => String(n).padStart(2, '0');
+  // The frame photographs sit in, in % of the page's width (cqw): 9 at the sides, 8 above, 12 below for
+  // the running foot. Pages are square on a spread and taller on a phone (keep in step with --pa in styles.css).
+  const frame = one => ({ w: 82, h: (one ? 100 / 0.72 : 100) - 20, gap: 3 });
+  // Big chapters (sports, events) put two to a page more often; small ones breathe.
+  const RHYTHM = { small: ['solo', 'two', 'solo', 'quiet', 'solo', 'two'], big: ['two', 'solo', 'two', 'two', 'quiet', 'two', 'solo'] };
 
+  // Group a chapter's photographs into pages, in the order they were listed: one to a page, two of the
+  // same shape to a page (portraits side by side, landscapes one above the other), or one small and alone.
   function packChapter(items) {
-    const queue = items.slice(), out = [];
-    const lr = items.length > 20 ? DENSE : RHYTHM;
-    let r = 0, pr = 0;
-    const ahead = o => queue.slice(0, 8).filter((it, i) => orient(it) === o && (i === 0 || !it.feature)).length;
-    // take up to k photos of one orientation from the next few, keeping their order
-    const take = (o, k) => {
-      const got = [];
-      for (let i = 0; i < queue.length && i < 8 && got.length < k; i++) if (orient(queue[i]) === o && (i === 0 || !queue[i].feature)) got.push(queue[i]);
-      got.forEach(g => queue.splice(queue.indexOf(g), 1));
-      return got;
-    };
-    while (queue.length) {
-      const head = queue[0];
-      if (head.feature && orient(head) === 'L') { queue.shift(); out.push({ tpl: 'feature', its: [head] }); continue; }
-      let tpl;
-      if (orient(head) === 'P') {
-        const n = ahead('P');
-        if (n >= 3 && pr++ % 2 === 0) tpl = 'p3';
-        else if (n >= 2) tpl = 'pp';
-        else if (ahead('L') >= 3) { const p = take('P', 1), l = take('L', 3); out.push({ tpl: 'pl3', its: [...p, ...l] }); continue; }
-        else tpl = n >= 3 ? 'p3' : 'pone';
-        out.push({ tpl, its: take('P', TPL[tpl]) });
-      } else {
-        const n = ahead('L');
-        tpl = lr[r++ % lr.length];
-        if (TPL[tpl] > n) tpl = n >= 6 ? 'six' : n >= 4 ? 'top3' : n >= 3 ? 'top2' : n >= 2 ? 'two' : 'full';
-        out.push({ tpl, its: take('L', TPL[tpl]) });
-      }
+    const q = items.slice(), out = [], rhythm = items.length > 14 ? RHYTHM.big : RHYTHM.small;
+    let r = 0;
+    while (q.length) {
+      const a = q[0], b = q[1];
+      if (a.feature && orient(a) === 'L') { out.push({ tpl: 'feature', its: q.splice(0, 1) }); continue; }
+      let want = rhythm[r++ % rhythm.length];
+      if (want === 'two' && !(b && !(b.feature && orient(b) === 'L') && orient(a) === orient(b))) want = 'solo';
+      if (want === 'quiet' && q.length < 3) want = 'solo';
+      out.push(want === 'two' ? { tpl: orient(a) === 'P' ? 'pair' : 'stack', its: q.splice(0, 2) } : { tpl: want, its: q.splice(0, 1) });
     }
     return out;
   }
 
+  // Lay a chapter out page by page. On a spread it opens with its text on the left and its first photograph
+  // on the right, a photograph marked `feature` runs across a whole spread, and it ends on a right-hand page
+  // so the next chapter opens on a spread too.
+  function planChapter(p, one, first) {
+    const [opener, ...rest] = p.orig;
+    const plan = [{ t: 'ph-ch', p }];
+    if (!opener) return plan;
+    plan.push({ t: 'ph-page', p, tpl: 'solo', its: [opener] });
+    const groups = packChapter(rest), at = () => first + plan.length, page = g => ({ t: 'ph-page', p, tpl: g.tpl, its: g.its });
+    while (groups.length) {
+      const g = groups.shift();
+      if (g.tpl !== 'feature') { plan.push(page(g)); continue; }
+      if (one) { plan.push({ t: 'ph-page', p, tpl: 'solo', its: g.its }); continue; }
+      if (at() % 2) {   // on a right-hand page: fill it with the next single photograph, or leave it white
+        const k = groups.findIndex(x => x.tpl === 'solo' || x.tpl === 'quiet');
+        plan.push(k >= 0 ? page(groups.splice(k, 1)[0]) : { t: 'blank' });
+      }
+      plan.push({ t: 'ph-half', p, it: g.its[0], side: 'L' }, { t: 'ph-half', p, it: g.its[0], side: 'R' });
+    }
+    if (!one && at() % 2) {
+      // ending on a left-hand page: give the last pair after any spread a page each, or leave the facing page white
+      let k = -1;
+      for (let i = plan.length - 1; i > 1 && plan[i].t !== 'ph-half'; i--) if (plan[i].its && plan[i].its.length === 2) { k = i; break; }
+      if (k >= 0) { const d = plan[k]; plan.splice(k, 1, { ...d, tpl: 'solo', its: [d.its[0]] }, { ...d, tpl: 'solo', its: [d.its[1]] }); }
+      else plan.push({ t: 'blank' });
+    }
+    return plan;
+  }
+
+  // Where each photograph sits in the frame, in cqw. Photographs are never cropped: every box has the photo's own shape.
+  function layout(tpl, its, F, side) {
+    const r = its.map(it => it.ratio || 1.5), lift = 0.42, n = v => Math.round(v * 100) / 100;   // a touch above centre reads as centred
+    let boxes;
+    if (tpl === 'pair') {
+      const h = Math.min(F.h, (F.w - F.gap) / (r[0] + r[1])), w0 = h * r[0], w1 = h * r[1], x = (F.w - w0 - w1 - F.gap) / 2, y = (F.h - h) * lift;
+      boxes = [{ it: its[0], x, y, w: w0, h }, { it: its[1], x: x + w0 + F.gap, y, w: w1, h }];
+    } else if (tpl === 'stack') {
+      const w = Math.min(F.w, (F.h - F.gap) / (1 / r[0] + 1 / r[1])), h0 = w / r[0], h1 = w / r[1], x = (F.w - w) / 2, y = (F.h - h0 - h1 - F.gap) * lift;
+      boxes = [{ it: its[0], x, y, w, h: h0 }, { it: its[1], x, y: y + h0 + F.gap, w, h: h1 }];
+    } else if (tpl === 'quiet') {
+      // small and low on the page, against the outer margin
+      const s = 44, w = r[0] >= 1 ? s : s * r[0], h = r[0] >= 1 ? s / r[0] : s;
+      boxes = [{ it: its[0], x: single ? (F.w - w) / 2 : side === 'odd' ? F.w - w : 0, y: F.h - h, w, h, small: true }];
+    } else {
+      const w = Math.min(F.w, F.h * r[0]), h = w / r[0];
+      boxes = [{ it: its[0], x: (F.w - w) / 2, y: (F.h - h) * lift, w, h }];
+    }
+    return boxes.map(b => ({ ...b, x: n(b.x), y: n(b.y), w: n(b.w), h: n(b.h) }));
+  }
+
   function buildPhotoPages(b, one, pages) {
     const add = (...ps) => pages.push(...ps);
+    const onRight = () => !one && pages.length % 2 === 1;
     if (!one) add({ t: 'endpaper' });
     add({ t: 'ph-title' });
     b.tocPage = pages.length;
     add({ t: 'ph-contents' });
-    let part = null;
-    b.projects.forEach(p => {
+    if (b.intro) add({ t: 'ph-fore' });
+    let part = null, partNo = 0;
+    b.projects.forEach((p, ci) => {
       p.orig = p.orig || p.items.slice();
-      if (p.part && p.part !== part) { part = p.part; add({ t: 'ph-part', part }); }
-      const [opener, ...rest] = p.orig;
-      const packed = opener ? packChapter(rest) : [];
-      // the viewer follows the order the photos appear on the pages
-      p.items = opener ? [opener, ...packed.flatMap(g => g.its)] : [];
-      p.items.forEach((it, m) => { it.m = m; });
+      p.no = ci + 1;
+      if (p.part && p.part !== part) {
+        part = p.part; partNo++;
+        if (onRight()) add({ t: 'blank' });
+        if (!one) add({ t: 'ph-part-color', part, n: partNo });
+        add({ t: 'ph-part', part, n: partNo });
+      }
+      if (onRight()) add({ t: 'blank' });
       p.start = pages.length;
-      add({ t: 'ph-open', p, it: opener });
-      packed.forEach(g => {
-        if (g.tpl === 'feature') {
-          if (!one && pages.length % 2 === 0) add({ t: 'ph-half', p, it: g.its[0], side: 'L' }, { t: 'ph-half', p, it: g.its[0], side: 'R' });
-          else add({ t: 'ph-page', p, tpl: 'full', its: g.its });
-        } else add({ t: 'ph-page', p, tpl: g.tpl, its: g.its });
-      });
+      const plan = planChapter(p, one, pages.length);
+      add(...plan);
+      // the viewer follows the order the photographs appear on the pages
+      p.items = plan.flatMap(d => d.its || (d.side === 'L' ? [d.it] : []));
+      p.items.forEach((it, m) => { it.m = m; });
       p.end = pages.length - 1;
     });
     b.endPage = pages.length;
@@ -328,8 +367,8 @@
 
   const folio = i => `<div class="folio"><span>${i + 1}</span></div>`;
   const zoom = (p, it, inner, cls = '') => `<button class="zoom${cls ? ' ' + cls : ''}" data-lb="${p.k}" data-m="${it.m}" aria-label="View larger: ${esc(it.alt || p.title)}">${inner}</button>`;
-  const fill_ = it => it.type === 'image' ? `<img src="${esc(it.src)}" alt="${esc(it.alt || '')}" loading="lazy" decoding="async">`
-    : it.type === 'video' && it.poster ? `<img src="${esc(it.poster)}" alt="${esc(it.alt || '')}" loading="lazy" decoding="async">`
+  const fill_ = it => it.type === 'image' ? `<img src="${esc(it.src)}" alt="${esc(it.alt || '')}" decoding="async">`
+    : it.type === 'video' && it.poster ? `<img src="${esc(it.poster)}" alt="${esc(it.alt || '')}" decoding="async">`
     : artHTML(it.art, 'thumb');
   const credits = p => {
     const rows = p.credits || [p.role && ['Role', p.role], p.tools && ['Tools', p.tools]].filter(Boolean);
@@ -338,7 +377,7 @@
   const linkBtn = p => p.link ? `<a class="act" href="${esc(p.link.url)}" target="_blank" rel="noopener">${esc(p.link.label || 'Visit')}${icon('arrow-up-right')}</a>` : '';
   const otherBooks = () => BOOKS.filter(b => b !== V).map(b => `<button class="act" data-switch="${esc(b.id)}">${esc(b.title)}</button>`).join('');
   const contactBlock = () => `<div data-copy-scope><p class="end-email" data-copy-src>${esc(C.email)}</p><div class="acts" style="margin-top:2cqw"><button class="act" data-copy="${esc(C.email)}">${icon('copy')}<span class="lbl">Copy email</span></button></div></div>`;
-  const phImg = (it, big) => `<img src="${esc(big ? it.src : (it.thumb || it.src))}" alt="${esc(it.alt || '')}" loading="lazy" decoding="async"${it.pos ? ` style="object-position:${esc(it.pos)}"` : ''}>`;
+  const phImg = (it, big) => `<img src="${esc(big ? it.src : (it.thumb || it.src))}" alt="${esc(it.alt || '')}" decoding="async"${it.pos ? ` style="object-position:${esc(it.pos)}"` : ''}>`;
   const phFoot = (i, p) => `<div class="ph-foot"><span class="n">${i + 1}</span><span class="t">${esc(p.title)}</span></div>`;
 
   function band(p, side) {
@@ -352,7 +391,8 @@
     if (fmt(V) === 'photo') {
       const it = V.cover ? V.projects.flatMap(p => p.items).find(x => x.id === V.cover) : (V.projects[0] && V.projects[0].items[0]);
       // the window follows the cover photo's shape; a blank book shows an empty portrait plate
-      return `<div class="ph-cover"><span class="tip${it ? (orient(it) === 'P' ? ' is-p' : '') : ' blank is-p'}">${it ? fill_(it) : ''}</span><h2 class="ph-cover-t">${esc(V.title)}</h2><span class="ph-cover-by">${esc(C.name)}</span></div>`;
+      return `<div class="ph-cover"><span class="tip${it ? (orient(it) === 'P' ? ' is-p' : '') : ' blank is-p'}">${it ? fill_(it) : ''}</span>`
+        + `<div class="ph-cover-foot"><h2 class="ph-cover-t">${esc(V.title)}</h2><span class="ph-cover-by"><span class="tri" aria-hidden="true"></span>${esc(C.name)}</span></div></div>`;
     }
     return `<div class="cover-in"><h2 class="cv-title">${esc(V.title)}</h2><span class="cv-sub">${esc(C.name)}</span><span class="mark cv-mark" aria-hidden="true">${mono}</span></div>`;
   }
@@ -367,31 +407,44 @@
       case 'endpaper': extra = ' ph-endpaper'; h = '<div class="pg"></div>'; break;
 
       /* photo book */
-      case 'ph-title':
-        h = `<div class="ph-text ph-center"><h2 class="ph-t">${esc(V.title)}</h2><p class="ph-small">${esc(C.name)}</p></div>`;
+      case 'ph-title': {
+        const n = V.projects.reduce((s, p) => s + p.orig.length, 0), c = V.projects.length;
+        h = `<div class="ph-text ph-titlepg"><span class="tri" aria-hidden="true"></span><h2 class="ph-big">${esc(V.title)}</h2><p class="ph-by">${esc(C.name)}</p>`
+          + `${n ? `<p class="ph-small">${photosN(n)} in ${c} chapter${c === 1 ? '' : 's'}</p>` : ''}</div>`;
         break;
+      }
+      case 'ph-fore':
+        h = `<div class="ph-text ph-forepg"><p class="ph-small">Foreword</p><p class="ph-fore">${esc(V.intro)}</p><p class="ph-by">${esc(C.name)}</p></div>`;
+        break;
+      case 'ph-part-color':
+        extra = ' ph-colorpg';
+        h = `<div class="ph-text ph-partno"><p class="ph-small">Part ${roman(d.n)}</p><h2 class="ph-partname">${esc(d.part)}</h2></div>`;
+        break;
+      case 'ph-ch': {
+        const p = d.p;
+        h = `<div class="ph-text ph-chpg"><p class="ph-chno">${pad2(p.no)}</p><div class="ph-chtext"><h3 class="ph-cht">${esc(p.title)}</h3>`
+          + `${(p.text || []).map(t => `<p>${esc(t)}</p>`).join('')}${credits(p)}<p class="ph-small">${photosN(p.orig.length)}</p></div></div>`;
+        break;
+      }
       case 'ph-contents': {
         if (isBlank(V)) { h = `<div class="ph-text ph-toc-pg"><h3 class="ph-t">Contents</h3>${blankRows('ph-toc', 7)}<p class="ph-small">In progress</p></div>`; break; }
         const parts = [];
         V.projects.forEach(p => { const k = p.part || ''; let g = parts.find(x => x.k === k); if (!g) parts.push(g = { k, list: [] }); g.list.push(p); });
-        h = `<div class="ph-text ph-toc-pg"><h3 class="ph-t">Contents</h3>${parts.map(g => `<div class="ph-toc-part">${g.k ? `<p class="ph-small">${esc(g.k)}</p>` : ''}<ol class="ph-toc">${g.list.map(p => `<li><button data-goto="${p.start}"><span class="t">${esc(p.title)}</span><span class="c">${p.orig.length}</span><span class="n">${p.start + 1}</span></button></li>`).join('')}</ol></div>`).join('')}</div>`;
+        const row = p => `<li><button data-goto="${p.start}"><span class="no">${pad2(p.no)}</span><span class="t">${esc(p.title)}</span><span class="c">${p.orig.length}</span><span class="n">${p.start + 1}</span></button></li>`;
+        h = `<div class="ph-text ph-toc-pg"><h3 class="ph-t">Contents</h3>${parts.map((g, k) => `<div class="ph-toc-part">${g.k ? `<p class="ph-toc-h"><span>${roman(k + 1)}</span>${esc(g.k)}</p>` : ''}<ol class="ph-toc">${g.list.map(row).join('')}</ol></div>`).join('')}</div>`;
         break;
       }
       case 'ph-part': {
         const list = V.projects.filter(p => p.part === d.part);
-        h = `<div class="ph-text ph-part"><h2 class="ph-part-t">${esc(d.part)}</h2><ol class="ph-toc">${list.map(p => `<li><button data-goto="${p.start}"><span class="t">${esc(p.title)}</span><span class="c">${p.orig.length}</span><span class="n">${p.start + 1}</span></button></li>`).join('')}</ol></div>`;
-        break;
-      }
-      case 'ph-open': {
-        const p = d.p, it = d.it;
-        const text = `<div class="ph-open-text"><h3 class="ph-t">${esc(p.title)}</h3>${(p.text || []).map(t => `<p>${esc(t)}</p>`).join('')}${credits(p)}<p class="ph-small">${photosN(p.orig.length)}</p></div>`;
-        h = `<div class="ph-open ${it && orient(it) === 'P' ? 'is-p' : 'is-l'}">${it ? `<div class="ph-cell c0">${zoom(p, it, phImg(it, true), 'ph-zoom')}</div>` : ''}${text}</div>${phFoot(i, p)}`;
+        // on a spread the part's name is on the colour page opposite; a phone shows it here
+        h = `<div class="ph-text ph-part">${single ? `<div><p class="ph-small">Part ${roman(d.n)}</p><h2 class="ph-part-t">${esc(d.part)}</h2></div>` : '<p class="ph-small">In this part</p>'}`
+          + `<ol class="ph-toc">${list.map(p => `<li><button data-goto="${p.start}"><span class="no">${pad2(p.no)}</span><span class="t">${esc(p.title)}</span><span class="c">${p.orig.length}</span><span class="n">${p.start + 1}</span></button></li>`).join('')}</ol></div>`;
         break;
       }
       case 'ph-page': {
-        const big = BIG[d.tpl] || [];
-        if (d.tpl === 'full') { h = `<div class="ph-bleed">${zoom(d.p, d.its[0], phImg(d.its[0], true), 'ph-zoom')}</div>`; break; }
-        h = `<div class="ph-grid t-${d.tpl}">${d.its.map((it, k) => `<div class="ph-cell c${k}">${zoom(d.p, it, phImg(it, big.includes(k)), 'ph-zoom')}</div>`).join('')}</div>${phFoot(i, d.p)}`;
+        const F = frame(single);
+        h = `<div class="ph-fr" style="height:${F.h}cqw">${layout(d.tpl, d.its, F, side).map(b => `<div class="ph-c" style="left:${b.x}cqw;top:${b.y}cqw;width:${b.w}cqw;height:${b.h}cqw">`
+          + `${zoom(d.p, b.it, phImg(b.it, !b.small), 'ph-zoom')}</div>`).join('')}</div>${phFoot(i, d.p)}`;
         break;
       }
       case 'ph-half':
@@ -399,7 +452,7 @@
         break;
       case 'ph-colophon': {
         const n = V.projects.reduce((s, p) => s + p.orig.length, 0);
-        h = `<div class="ph-text"><p class="ph-fore">${esc(V.intro || '')}</p><p class="ph-small">${!n ? 'More soon.' : V.byline ? `${photosN(n)}. ${esc(V.byline)}` : `${photosN(n)} by ${esc(C.name)}.`}</p>${contactBlock()}<div class="end-books">${otherBooks()}</div></div>`;
+        h = `<div class="ph-text ph-colo"><p class="ph-small">${!n ? 'More soon.' : V.byline ? `${photosN(n)}. ${esc(V.byline)}` : `${photosN(n)} by ${esc(C.name)}.`}</p>${contactBlock()}<div class="end-books">${otherBooks()}</div></div>`;
         break;
       }
 
@@ -463,7 +516,7 @@
         break;
       }
     }
-    if (side === 'odd' && !['endpaper', 'back', 'ph-half'].includes(d.t) && !(d.t === 'ph-page' && d.tpl === 'full')) h += '<span class="curl" aria-hidden="true"></span>';
+    if (side === 'odd' && !['endpaper', 'back', 'ph-half', 'ph-part-color'].includes(d.t)) h += '<span class="curl" aria-hidden="true"></span>';
     return { cls: side + extra + ` pk-${d.t}`, html: h };
   }
   function fill(el, i, extra = '') { const r = page(i); el.className = 'page ' + r.cls + (extra ? ' ' + extra : ''); el.innerHTML = r.html; return el; }
@@ -476,12 +529,23 @@
     if (single) fill(R, pos); else { fill(L, 2 * pos); fill(R, 2 * pos + 1); }
     spread.classList.toggle('closed', !single && pos === -1);
     chrome();
+    preload();
+  }
+  // fetch the photographs on the spreads either side, so a turn never shows a half-loaded page
+  function preload() {
+    if (!V) return;
+    (single ? [pos + 1, pos - 1] : [2 * pos + 2, 2 * pos + 3, 2 * pos - 2, 2 * pos - 1]).forEach(i => {
+      if (i < 0 || i >= P.length) return;
+      for (const m of page(i).html.matchAll(/<img[^>]+?src="([^"]+)"/g)) { const im = new Image(); im.decoding = 'async'; im.src = m[1].replace(/&amp;/g, '&'); }
+    });
   }
   function section() {
     if (pos === -1) return { label: 'Cover', seg: -1 };
     const vis = visible();
     for (const p of V.projects) if (vis.some(i => i >= p.start && i <= p.end)) return { label: p.title, seg: p.k + 1, p };
     if (vis.some(i => i >= V.endPage)) return { label: V.endLabel, seg: V.projects.length + 1 };
+    const pt = vis.map(i => P[i]).find(d => d && d.part);   // a part opener
+    if (pt) { const p = V.projects.find(x => x.part === pt.part); return { label: pt.part, seg: p ? p.k + 1 : 0 }; }
     return { label: 'Contents', seg: 0 };
   }
   function chrome() {
@@ -491,15 +555,22 @@
     $$('#scrubBar button').forEach((b, k) => b.setAttribute('aria-current', String(k === s.seg)));
     $('#prevBtn').disabled = pos <= -1;
     $('#nextBtn').disabled = pos >= maxPos();
+    $('#edgePrev').hidden = pos <= -1;
+    $('#edgeNext').hidden = pos >= maxPos();
     $('#live').textContent = `${s.label}${nums.length ? `, page ${nums.join(' and ')}` : ''}`;
     setHash(s.p ? `${V.id}.${s.p.slug}` : V.id, false);
   }
+  // Turn to a spread. A press during a turn hurries it along and the next turn follows straight after,
+  // so quick presses are never lost; `step` counts from wherever the book is heading.
+  const dest = () => queued ?? turnTo ?? pos;
+  const step = d => go(dest() + d);
+  let turnAnims = [];
   async function go(target) {
     if (!V) return;
     target = Math.max(-1, Math.min(maxPos(), target));
-    if (busy || target === pos) return;
+    if (turning) { queued = target === turnTo ? null : target; turnAnims.forEach(a => { a.playbackRate = 2.6; }); return; }
+    if (target === pos) return;
     if (reduce.matches) { pos = target; draw(); return; }
-    busy = true;
     const fwd = target > pos;
     const leaf = document.createElement('div'), front = document.createElement('div'), back = document.createElement('div');
     leaf.setAttribute('inert', ''); leaf.setAttribute('aria-hidden', 'true');
@@ -515,16 +586,25 @@
     [front, back].forEach(f => { const s = document.createElement('span'); s.className = 'shade'; f.append(s); });
     leaf.append(front, back);
     spread.append(leaf);
-    const dur = single ? 560 : 780, easing = 'cubic-bezier(.45,.05,.2,1)';
+    // give the photographs on the new pages a moment to finish decoding, so the turn reveals a finished page
+    turning = 'waiting'; turnTo = target;
+    const loading = $$('img', spread).filter(im => !im.complete);
+    if (loading.length) await Promise.race([Promise.all(loading.map(im => im.decode().catch(() => {}))), new Promise(r => setTimeout(r, 320))]);
+    if (!V) { leaf.remove(); turning = turnTo = null; queued = null; return; }
+    const dur = single ? 400 : 560, easing = 'cubic-bezier(.45,.05,.2,1)';
     const kf = [{ transform: `rotateY(${from}deg)` }, { transform: `rotateY(${to}deg)` }];
     if (single) { kf[0].opacity = fwd ? 1 : 0; kf[1].opacity = fwd ? 0 : 1; }
-    $$('.shade', leaf).forEach(s => s.animate([{ opacity: 0 }, { opacity: 1 }, { opacity: 0 }], { duration: dur, easing }));
-    try { await leaf.animate(kf, { duration: dur, easing, fill: 'forwards' }).finished; } catch (e) { /* interrupted */ }
+    const anim = leaf.animate(kf, { duration: dur, easing, fill: 'forwards' });
+    turnAnims = [anim, ...$$('.shade', leaf).map(s => s.animate([{ opacity: 0 }, { opacity: 1 }, { opacity: 0 }], { duration: dur, easing }))];
+    turning = anim;
+    if (queued !== null) turnAnims.forEach(a => { a.playbackRate = 2.6; });
+    try { await anim.finished; } catch (e) { /* cancelled when the book closes */ }
     leaf.remove();
-    busy = false;
-    if (!V) return;
+    turning = null; turnTo = null; turnAnims = [];
+    if (!V) { queued = null; return; }
     pos = target;
     draw();
+    if (queued !== null) { const q = queued; queued = null; if (q !== pos) go(q); }
   }
   function gotoSlug(slug) {
     const p = V && V.projects.find(x => x.slug === slug);
@@ -544,8 +624,8 @@
     if (!b) return;
     if (V && V.id === id) { if (slug) gotoSlug(slug); return; }
     lastFocus = from || document.activeElement;
-    single = narrow.matches; V = b; P = buildPages(b, single); pos = -1; busy = false;
-    spread.dataset.format = fmt(b);
+    single = narrow.matches; V = b; P = buildPages(b, single); pos = -1; turning = turnTo = queued = null;
+    spread.dataset.format = reader.dataset.format = fmt(b);
     spread.dataset.slot = b.slot;
     spread.querySelectorAll('.leaf').forEach(l => l.remove());
     spread.style.setProperty('--c', `var(--b${b.slot})`);
@@ -562,18 +642,21 @@
     $('#nextBtn').focus({ preventScroll: true });
     const p = slug && b.projects.find(x => x.slug === slug);
     const target = p ? p.start : 0;
-    setTimeout(() => { if (V === b && pos === -1) go(toPos(target)); }, reduce.matches ? 0 : 460);
+    setTimeout(() => { if (V === b && pos === -1) go(toPos(target)); }, reduce.matches ? 0 : 380);
   }
   function buildScrub() {
     const segs = [{ label: 'Contents', page: V.tocPage }, ...V.projects.map(p => ({ label: p.title, page: p.start })), { label: V.endLabel, page: V.endPage }];
-    $('#scrubBar').innerHTML = segs.map(s => `<button data-goto="${s.page}" aria-label="Go to ${esc(s.label)}" title="${esc(s.label)}"></button>`).join('');
+    // each part of the bar is as long as its share of the book
+    segs.forEach((s, k) => { s.len = Math.max(1, (k + 1 < segs.length ? segs[k + 1].page : P.length) - s.page); });
+    $('#scrubBar').innerHTML = segs.map(s => `<button data-goto="${s.page}" style="flex-grow:${s.len}" aria-label="Go to ${esc(s.label)}" title="${esc(s.label)}"></button>`).join('');
   }
   function closeBook({ restore = true, fromHistory = false } = {}) {
     if (!V) return;
     if (LB) closeLB(false);
     reader.hidden = true;
     lock(false);
-    V = null; busy = false;
+    V = null; queued = null;
+    turnAnims.forEach(a => a.cancel());
     spread.querySelectorAll('.leaf').forEach(l => l.remove());
     $$('.pulled').forEach(b => b.classList.remove('pulled'));
     if (!fromHistory) {
@@ -649,6 +732,8 @@
       } else openBook(id, slug, { from: op });
       return;
     }
+    const ed = t.closest('[data-step]');
+    if (ed && V) { step(+ed.dataset.step); return; }
     const gt = t.closest('[data-goto]');
     if (gt && V) { go(toPos(+gt.dataset.goto)); return; }
     const sw = t.closest('[data-switch]');
@@ -660,12 +745,12 @@
     const ch = t.closest('#filters .chip');
     if (ch) { filterWork(ch.dataset.filter); return; }
     if (V && !single && !LB && !t.closest('button,a') && t.closest('#spread')) {
-      if (t.closest('#pageR')) go(pos + 1); else if (t.closest('#pageL')) go(pos - 1);
+      if (t.closest('#pageR')) step(1); else if (t.closest('#pageL')) step(-1);
     }
   });
   $('#closeBtn').addEventListener('click', () => closeBook());
-  $('#prevBtn').addEventListener('click', () => go(pos - 1));
-  $('#nextBtn').addEventListener('click', () => go(pos + 1));
+  $('#prevBtn').addEventListener('click', () => step(-1));
+  $('#nextBtn').addEventListener('click', () => step(1));
   $('#tocBtn').addEventListener('click', () => V && go(toPos(V.tocPage)));
   const share = $('#shareBtn');
   if (inFrame) share.remove(); else share.addEventListener('click', () => copyText(location.href, share));
@@ -686,8 +771,9 @@
     if (!V) return;
     switch (e.key) {
       case 'Escape': closeBook(); break;
-      case 'ArrowRight': case 'PageDown': e.preventDefault(); go(pos + 1); break;
-      case 'ArrowLeft': case 'PageUp': e.preventDefault(); go(pos - 1); break;
+      case 'ArrowRight': case 'PageDown': e.preventDefault(); step(1); break;
+      case 'ArrowLeft': case 'PageUp': e.preventDefault(); step(-1); break;
+      case ' ': if (!e.target.closest('button,a,input')) { e.preventDefault(); step(e.shiftKey ? -1 : 1); } break;
       case 'Home': e.preventDefault(); go(toPos(0)); break;
       case 'End': e.preventDefault(); go(maxPos()); break;
     }
@@ -703,7 +789,28 @@
       if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.3) fn(dx < 0 ? 1 : -1);
     });
   }
-  swipe(spread, d => go(pos + d));
+  swipe(spread, d => step(d));
+
+  // Trackpads and mouse wheels turn pages too: one turn per gesture, so a fling doesn't riffle the whole book.
+  let wheelSum = 0, wheelIdle = 0, wheelDone = false;
+  const scrollsItself = (el, dy) => {
+    for (; el && el !== reader; el = el.parentElement) {
+      if (el.scrollHeight > el.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(el).overflowY)
+        && (dy > 0 ? el.scrollTop + el.clientHeight < el.scrollHeight - 1 : el.scrollTop > 0)) return true;
+    }
+    return false;
+  };
+  reader.addEventListener('wheel', e => {
+    if (!V || LB || e.ctrlKey) return;   // ctrl + wheel is pinch-to-zoom
+    const across = Math.abs(e.deltaX) > Math.abs(e.deltaY), d = (across ? e.deltaX : e.deltaY) * (e.deltaMode === 1 ? 16 : 1);
+    if (!across && scrollsItself(e.target, d)) return;   // a long text page scrolls first
+    e.preventDefault();
+    clearTimeout(wheelIdle);
+    wheelIdle = setTimeout(() => { wheelSum = 0; wheelDone = false; }, 160);
+    if (wheelDone) return;
+    wheelSum += d;
+    if (Math.abs(wheelSum) >= 36) { step(wheelSum > 0 ? 1 : -1); wheelDone = true; }
+  }, { passive: false });
   swipe(lb, d => stepLB(d));
 
   narrow.addEventListener('change', () => {

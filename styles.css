@@ -196,6 +196,17 @@ a{color:inherit}
 .spread:not(.single) #pageL:not(.void){cursor:w-resize}
 .curl{position:absolute;right:0;bottom:0;width:0;height:0;z-index:5;pointer-events:none;background:linear-gradient(315deg,transparent 50%,color-mix(in srgb,var(--paper) 80%,#000) 50%,var(--paper) 80%);box-shadow:-3px -3px 6px rgba(0,0,0,.12);transition:width .25s,height .25s}
 .spread:not(.single) #pageR:hover .curl{width:7cqw;height:7cqw}
+/* the photo book sits in a darker, quieter room */
+.reader[data-format="photo"]{background:rgba(17,16,14,.96);backdrop-filter:none;-webkit-backdrop-filter:none}
+/* the outer edges of a spread turn the page, even when photographs fill it */
+.edge{position:absolute;top:0;bottom:0;z-index:7;width:4.5%;padding:0;border:0;background:transparent;cursor:pointer;opacity:0;transition:opacity .2s}
+.edge.prev{left:0;background:linear-gradient(90deg,rgba(0,0,0,.18),transparent)}
+.edge.next{right:0;background:linear-gradient(270deg,rgba(0,0,0,.18),transparent)}
+.edge::after{content:"";position:absolute;top:50%;left:50%;width:12px;height:12px;border:solid #fff;border-width:2px 2px 0 0;transform:translate(-65%,-50%) rotate(45deg);filter:drop-shadow(0 1px 1px rgba(0,0,0,.4))}
+.edge.prev::after{transform:translate(-35%,-50%) rotate(-135deg)}
+.edge:hover{opacity:1}
+.spread.single .edge{width:10%}
+.spread.closed .edge.prev{display:none}
 .pg{position:absolute;inset:0;z-index:1;padding:8cqw 9cqw 6.5cqw;display:flex;flex-direction:column;gap:3cqw;overflow:auto;font-size:clamp(13px,2.8cqw,17px);line-height:1.5}
 .even .pg{padding-right:10.5cqw}
 .odd .pg{padding-left:10.5cqw}
@@ -272,73 +283,84 @@ a{color:inherit}
 .ph-cover .tip.blank{background:var(--pp);outline:3px solid #161616;outline-offset:0}
 .endpaper-pat{background:radial-gradient(circle at 25% 25%,color-mix(in srgb,var(--c) 30%,transparent) 0 1.1cqw,transparent 1.2cqw) 0 0/7cqw 7cqw,color-mix(in srgb,var(--c) 14%,var(--paper))}
 /* ===== book formats ===== */
-/* photo book: square pages packed edge to edge, thin gutters, running feet. Built to hold hundreds of photos. */
-.spread[data-format="photo"]{--pa:1;--smax:640px;--m:3.2cqw;--mb:6.2cqw;--g:.9cqw;
+/* photo book: square pages, one or two photographs to a page set with margins, like a printed photobook */
+.spread[data-format="photo"]{--pa:1;--smax:640px;
   --paper:var(--pp);--paper-bg:var(--pp);--paper-ink:var(--pp-ink);--paper-muted:var(--pp-muted);--edge:var(--pp-edge);
-  --f-title:'Archivo',system-ui,sans-serif;--f-body:'Archivo',system-ui,sans-serif;--f-ui:'Archivo',system-ui,sans-serif}
+  --f-title:'Archivo',system-ui,sans-serif;--f-body:'Archivo',system-ui,sans-serif;--f-ui:'Archivo',system-ui,sans-serif;
+  --t-weight:500;--t-case:none;--t-ls:.01em}
 .spread[data-format="photo"]:not(.single){--sw:min(1680px,100%,calc((100vh - 150px) * 2));--sw:min(1680px,100%,calc((100dvh - 150px) * 2))}
+/* on a phone each page is taller, so photographs can be bigger (keep in step with frame() in app.js) */
+.spread[data-format="photo"].single{--pa:.72;--smax:560px}
 .spread[data-format="photo"] .page{text-shadow:none}
-.spread[data-format="photo"] .page::before{content:"";position:absolute;inset:0;background-image:var(--noise);opacity:.18;mix-blend-mode:multiply;pointer-events:none;z-index:0}
-.spread[data-format="photo"] .page.even::after{background:linear-gradient(90deg,transparent 80%,rgba(0,0,0,.05) 94%,rgba(0,0,0,.14))}
-.spread[data-format="photo"] .page.odd::after{background:linear-gradient(270deg,transparent 80%,rgba(0,0,0,.05) 94%,rgba(0,0,0,.15))}
-.page.ph-endpaper{background:var(--c)}
-.page.ph-endpaper::before{opacity:.55!important}
-.ph-text{position:absolute;inset:0;z-index:1;padding:8cqw 8cqw 9cqw;display:flex;flex-direction:column;justify-content:flex-end;gap:2cqw;
-  font-family:'Archivo',system-ui,sans-serif;font-weight:400;font-size:clamp(11px,1.9cqw,15px);line-height:1.55;color:var(--paper-ink);overflow:auto}
+.spread[data-format="photo"] .page::before{content:"";position:absolute;inset:0;background-image:var(--noise);opacity:.16;mix-blend-mode:multiply;pointer-events:none;z-index:0}
+.spread[data-format="photo"] .page.even::after{background:linear-gradient(90deg,transparent 84%,rgba(0,0,0,.04) 95%,rgba(0,0,0,.12))}
+.spread[data-format="photo"] .page.odd::after{background:linear-gradient(270deg,transparent 84%,rgba(0,0,0,.04) 95%,rgba(0,0,0,.13))}
+.page.ph-endpaper,.page.ph-colorpg{background:var(--c);color:var(--fc)}
+.page.ph-endpaper::before,.page.ph-colorpg::before{opacity:.5!important}
+.tri{display:inline-block;flex:none;width:2.6cqw;aspect-ratio:1/.87;background:var(--c);clip-path:polygon(50% 0,100% 100%,0 100%)}
+.spread[data-slot="5"] .tri{background:var(--paper-ink)}
+/* text pages */
+.ph-text{position:absolute;inset:0;z-index:1;padding:9cqw 9cqw 12cqw;display:flex;flex-direction:column;justify-content:flex-end;gap:2cqw;
+  font-family:'Archivo',system-ui,sans-serif;font-weight:400;font-size:clamp(11px,2cqw,15.5px);line-height:1.55;color:var(--paper-ink);overflow:auto}
 .ph-text p{margin:0}
-.ph-center{justify-content:center;align-items:center;text-align:center}
 .ph-t{margin:0;font-family:'Archivo',system-ui,sans-serif;font-weight:500;font-size:clamp(15px,3.1cqw,26px);letter-spacing:.005em;line-height:1.15}
 .ph-small{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:clamp(9px,1.45cqw,11.5px);letter-spacing:.06em;text-transform:uppercase;color:var(--paper-muted)}
-.ph-fore{max-width:32em;text-wrap:pretty}
-.ph-toc-pg{justify-content:flex-start;gap:3.4cqw}
-.ph-toc-part{display:flex;flex-direction:column;gap:1cqw}
+.ph-big{margin:1.5cqw 0 0;font-weight:500;font-size:11cqw;line-height:.92;letter-spacing:-.03em}
+.ph-by{font-size:clamp(12px,2.3cqw,18px);font-weight:500}
+.ph-titlepg{gap:1.6cqw}
+.ph-titlepg .tri{width:3.6cqw}
+.ph-forepg{gap:2.6cqw}
+.ph-fore{max-width:24em;font-size:clamp(14px,3cqw,24px);line-height:1.38;letter-spacing:-.005em;text-wrap:pretty}
+/* contents */
+.ph-toc-pg{justify-content:flex-start;gap:3cqw}
+.ph-toc-pg .ph-t{margin-bottom:1cqw}
+.ph-toc-part{display:flex;flex-direction:column;gap:.6cqw}
+.ph-toc-h{display:flex;gap:1.6cqw;align-items:baseline;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:clamp(9px,1.45cqw,11.5px);letter-spacing:.06em;text-transform:uppercase;color:var(--paper-muted)}
+.ph-toc-h span{color:var(--paper-ink)}
 .ph-toc{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
-.ph-toc button{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:1fr 3em 2.6em;gap:1em;width:100%;padding:.42em 0;border-bottom:1px solid color-mix(in srgb,var(--paper-ink) 14%,transparent);font-variant-numeric:tabular-nums}
+.ph-toc button{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:2.4em 1fr 2.6em 2.4em;gap:.8em;align-items:baseline;width:100%;padding:.4em 0;border-bottom:1px solid color-mix(in srgb,var(--paper-ink) 13%,transparent);font-variant-numeric:tabular-nums}
 .ph-toc button:hover .t{text-decoration:underline;text-underline-offset:3px}
 .ph-toc button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.ph-toc .c,.ph-toc .n{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.82em;color:var(--paper-muted);text-align:right}
+.ph-toc .no,.ph-toc .c,.ph-toc .n{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.82em;color:var(--paper-muted)}
+.ph-toc .c,.ph-toc .n{text-align:right}
+/* part openers: a page in the book's colour with the numeral, facing the part's title and chapters */
+.ph-partno{justify-content:space-between;color:var(--fc)}
+.ph-partno .ph-small{color:inherit;opacity:.8}
+.ph-partname{margin:0;font-family:'Archivo',system-ui,sans-serif;font-weight:600;font-stretch:80%;font-size:13cqw;line-height:.86;letter-spacing:-.02em;text-wrap:balance}
 .ph-part{justify-content:space-between}
-.ph-part-t{margin:0;font-family:'Archivo',system-ui,sans-serif;font-weight:600;font-stretch:80%;font-size:clamp(28px,9cqw,76px);line-height:.9;letter-spacing:-.01em;text-wrap:balance}
-.ph-grid{position:absolute;z-index:1;top:var(--m);left:var(--m);right:var(--m);bottom:var(--mb);display:grid;gap:var(--g)}
-.ph-cell{position:relative;overflow:hidden;min-width:0;min-height:0;background:color-mix(in srgb,var(--paper-ink) 9%,var(--paper))}
+.ph-part-t{margin:1cqw 0 0;font-family:'Archivo',system-ui,sans-serif;font-weight:600;font-stretch:80%;font-size:clamp(28px,9cqw,76px);line-height:.9;letter-spacing:-.01em;text-wrap:balance}
+/* chapter openers: the number, then the title and a few lines, facing the first photograph */
+.ph-chpg{justify-content:space-between}
+.ph-chno{font-weight:500;font-size:15cqw;line-height:.8;letter-spacing:-.05em;color:color-mix(in srgb,var(--c) 88%,var(--paper-ink))}
+.spread[data-slot="5"] .ph-chno{color:var(--paper-ink)}
+.ph-chtext{display:flex;flex-direction:column;gap:1.4cqw;max-width:30em}
+.ph-cht{margin:0 0 .6cqw;font-weight:500;font-size:clamp(20px,6.4cqw,52px);line-height:.98;letter-spacing:-.02em;text-wrap:balance}
+.ph-chtext .credits{gap:.15em 1.4em;font-size:.92em;margin-top:.6cqw}
+.ph-chtext .credits dt{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.78em;letter-spacing:.06em;text-transform:uppercase;padding-top:.2em}
+.ph-chtext .ph-small{margin-top:.8cqw}
+/* photograph pages: boxes placed by layout() in app.js, each the photograph's own shape */
+.ph-fr{position:absolute;z-index:1;left:9cqw;top:8cqw;width:82cqw}
+.ph-c{position:absolute;overflow:hidden;background:color-mix(in srgb,var(--paper-ink) 7%,var(--paper))}
 .ph-zoom{all:unset;box-sizing:border-box;position:absolute;inset:0;display:block;cursor:zoom-in}
-.ph-zoom:focus-visible{outline:2px solid var(--accent);outline-offset:-3px}
-.ph-zoom>img,.ph-zoom>.art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .5s cubic-bezier(.2,.7,.2,1)}
-.ph-cell:hover .ph-zoom>img{transform:scale(1.025)}
-.t-two{grid-template-rows:1fr 1fr}
-.t-top2{grid-template-columns:1fr 1fr;grid-template-rows:2.2fr 1fr}
-.t-top3{grid-template-columns:repeat(3,1fr);grid-template-rows:2.2fr 1fr}
-.t-top2 .c0,.t-top3 .c0{grid-column:1/-1}
-.t-six{grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr)}
-.t-nine{grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr)}
-.t-pp{grid-template-columns:1fr 1fr}
-.t-p3{grid-template-columns:1.45fr 1fr;grid-template-rows:1fr 1fr}
-.t-pl3{grid-template-columns:1.45fr 1fr;grid-template-rows:repeat(3,1fr)}
-.t-p3 .c0,.t-pl3 .c0{grid-row:1/-1}
-.t-pone{grid-template-columns:auto;justify-content:center}
-.t-pone .ph-cell{aspect-ratio:2/3;height:100%}
-.ph-bleed,.ph-half{position:absolute;inset:0;overflow:hidden;z-index:1}
+.ph-zoom:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.ph-zoom>img,.ph-zoom>.art{position:absolute;inset:0;width:100%;height:100%;max-height:none;margin:0;object-fit:cover}
+.ph-half{position:absolute;inset:0;overflow:hidden;z-index:1}
 .ph-half .ph-zoom{right:auto;width:200%}
 .ph-half.R .ph-zoom{left:-100%}
-.ph-open{position:absolute;z-index:1;top:var(--m);left:var(--m);right:var(--m);bottom:var(--mb);display:grid;gap:var(--g)}
-.ph-open.is-l{grid-template-rows:auto 1fr}
-.ph-open.is-l .ph-cell{aspect-ratio:3/2}
-.ph-open.is-p{grid-template-columns:1.45fr 1fr}
-.ph-open-text{display:flex;flex-direction:column;justify-content:flex-end;gap:1.2cqw;padding:1.6cqw .4cqw 0;font-family:'Archivo',system-ui,sans-serif;font-size:clamp(11px,1.85cqw,15px);line-height:1.5;color:var(--paper-ink);min-height:0;overflow:hidden}
-.ph-open-text p{margin:0;max-width:34em}
-.ph-open.is-p .ph-open-text{padding:0 0 0 1.4cqw}
-.ph-open-text .credits{gap:.15em 1.4em;font-size:.92em}
-.ph-open-text .credits dt{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.78em;letter-spacing:.06em;text-transform:uppercase;padding-top:.2em}
-.ph-foot{position:absolute;z-index:1;left:var(--m);right:var(--m);bottom:0;height:var(--mb);display:flex;align-items:center;gap:2cqw;
+.ph-foot{position:absolute;z-index:1;left:9cqw;right:9cqw;bottom:0;height:12cqw;display:flex;align-items:center;gap:2cqw;
   font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:clamp(8.5px,1.3cqw,11px);letter-spacing:.06em;text-transform:uppercase;color:var(--paper-muted);font-variant-numeric:tabular-nums}
+.ph-foot .n{color:var(--paper-ink)}
 .odd .ph-foot{flex-direction:row-reverse}
 .spread.single .ph-foot{flex-direction:row-reverse;justify-content:space-between}
-.ph-cover{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.6cqw;padding:8cqw;color:var(--fc)}
-.ph-cover .tip{position:relative;width:62%;aspect-ratio:3/2;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.35),0 6px 16px -6px rgba(0,0,0,.45);outline:1px solid rgba(255,255,255,.18);outline-offset:-1px}
+/* cover: cloth in the book's colour, a photograph tipped in, the title below */
+.ph-cover{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;gap:3cqw;padding:11cqw 9cqw 9cqw;color:var(--fc)}
+.ph-cover .tip{position:relative;width:76%;aspect-ratio:3/2;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.35),0 8px 18px -8px rgba(0,0,0,.5);outline:1px solid rgba(255,255,255,.18);outline-offset:-1px}
 .ph-cover .tip>img,.ph-cover .tip>.art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.ph-cover-t{margin:3cqw 0 0;font-family:'Archivo',system-ui,sans-serif;font-weight:500;font-size:clamp(14px,3cqw,24px);letter-spacing:.14em;text-transform:uppercase}
-.ph-cover-by{font-family:'Archivo',system-ui,sans-serif;font-size:clamp(10px,1.7cqw,13px);letter-spacing:.12em;text-transform:uppercase;opacity:.75}
-.spread[data-format="photo"]{--t-weight:500;--t-case:none;--t-ls:.01em}
+.ph-cover-foot{margin-top:auto;align-self:stretch;display:flex;flex-direction:column;gap:1.6cqw}
+.ph-cover-t{margin:0;font-family:'Archivo',system-ui,sans-serif;font-weight:600;font-size:9.5cqw;line-height:.9;letter-spacing:-.02em}
+.ph-cover-by{display:flex;align-items:center;gap:1.6cqw;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:clamp(9px,1.6cqw,13px);letter-spacing:.1em;text-transform:uppercase}
+.ph-cover .tri{background:currentColor}
+.ph-colo{gap:2.4cqw}
 .ph-text .end-email{font-family:'Archivo',system-ui,sans-serif;font-weight:500;font-size:clamp(13px,2.4cqw,19px)}
 .ph-text .end-books{display:flex;flex-wrap:wrap;gap:1.4cqw}
 .ph-text .act{font-family:'Archivo',system-ui,sans-serif}
